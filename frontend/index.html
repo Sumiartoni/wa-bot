@@ -152,20 +152,23 @@
       <!-- AI Provider -->
       <div class="glass rounded-xl p-5 space-y-4">
         <h3 class="font-semibold text-sm">AI Provider</h3>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-3 gap-3">
           <button onclick="setProvider('groq')" id="provGroq" class="border border-white/10 rounded-xl p-3 text-center text-sm hover:border-indigo-500 transition">
             <p class="font-bold">🟢 GROQ</p><p class="text-xs text-gray-500 mt-1">Llama, Mixtral (Gratis)</p>
           </button>
           <button onclick="setProvider('openai')" id="provOpenai" class="border border-white/10 rounded-xl p-3 text-center text-sm hover:border-indigo-500 transition">
-            <p class="font-bold">🤖 OpenAI</p><p class="text-xs text-gray-500 mt-1">GPT-4o, Codex</p>
+            <p class="font-bold">🤖 OpenAI</p><p class="text-xs text-gray-500 mt-1">GPT-4o (API Key)</p>
+          </button>
+          <button onclick="setProvider('chatgpt')" id="provChatgpt" class="border border-white/10 rounded-xl p-3 text-center text-sm hover:border-indigo-500 transition">
+            <p class="font-bold">💬 ChatGPT</p><p class="text-xs text-gray-500 mt-1">Free (Access Token)</p>
           </button>
         </div>
-        <div><label class="text-sm text-gray-400">AI Model</label><input id="setModel" placeholder="Contoh: llama-3.3-70b-versatile atau gpt-4o-mini" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mt-1 outline-none focus:border-indigo-500"></div>
+        <div><label class="text-sm text-gray-400">AI Model</label><input id="setModel" placeholder="auto / llama-3.3-70b-versatile / gpt-4o-mini" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mt-1 outline-none focus:border-indigo-500"></div>
         <div><label class="text-sm text-gray-400">System Prompt</label><textarea id="setPrompt" rows="3" placeholder="Instruksi untuk AI..." class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mt-1 outline-none focus:border-indigo-500 resize-none"></textarea></div>
       </div>
-      <!-- API Keys -->
+      <!-- API Keys & Tokens -->
       <div class="glass rounded-xl p-5 space-y-4">
-        <h3 class="font-semibold text-sm">API Keys</h3>
+        <h3 class="font-semibold text-sm">API Keys & Tokens</h3>
         <div>
           <label class="text-sm text-gray-400">GROQ API Key</label>
           <input id="setGroqKey" type="password" placeholder="gsk_xxxxxxx..." class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mt-1 outline-none focus:border-indigo-500">
@@ -175,6 +178,11 @@
           <label class="text-sm text-gray-400">OpenAI API Key</label>
           <input id="setOpenaiKey" type="password" placeholder="sk-xxxxxxx..." class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mt-1 outline-none focus:border-indigo-500">
           <p class="text-xs text-gray-600 mt-1">Dari <a href="https://platform.openai.com/api-keys" target="_blank" class="text-indigo-400 hover:underline">platform.openai.com</a></p>
+        </div>
+        <div>
+          <label class="text-sm text-gray-400">ChatGPT Access Token <span class="text-yellow-500">(Unofficial)</span></label>
+          <textarea id="setChatgptToken" rows="2" placeholder="eyJhbGciOiJSUzI1NiI..." class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mt-1 outline-none focus:border-indigo-500 resize-none font-mono text-xs"></textarea>
+          <p class="text-xs text-gray-600 mt-1">Cara ambil: Login <a href="https://chatgpt.com" target="_blank" class="text-indigo-400 hover:underline">chatgpt.com</a> → Buka <a href="https://chatgpt.com/api/auth/session" target="_blank" class="text-indigo-400 hover:underline">chatgpt.com/api/auth/session</a> → Copy nilai <code class="text-indigo-300">accessToken</code></p>
         </div>
       </div>
       <button onclick="saveSettings()" class="bg-indigo-600 hover:bg-indigo-500 px-6 py-2.5 rounded-lg text-sm transition font-medium">💾 Simpan Semua Settings</button>
@@ -343,6 +351,7 @@ async function loadSettings() {
     document.getElementById('setPrompt').value = s.ai_system_prompt || '';
     document.getElementById('setGroqKey').value = s.groq_api_key || '';
     document.getElementById('setOpenaiKey').value = s.openai_api_key || '';
+    document.getElementById('setChatgptToken').value = s.chatgpt_access_token || '';
     currentProvider = s.ai_provider || 'groq';
     updateProviderUI(currentProvider);
     updateAIToggle(s.global_ai_enabled === 'true');
@@ -355,10 +364,10 @@ function setProvider(p) {
 }
 
 function updateProviderUI(p) {
-  const groq = document.getElementById('provGroq');
-  const openai = document.getElementById('provOpenai');
-  groq.className = 'border rounded-xl p-3 text-center text-sm transition ' + (p==='groq' ? 'border-indigo-500 bg-indigo-500/10' : 'border-white/10 hover:border-indigo-500');
-  openai.className = 'border rounded-xl p-3 text-center text-sm transition ' + (p==='openai' ? 'border-indigo-500 bg-indigo-500/10' : 'border-white/10 hover:border-indigo-500');
+  const cls = (active) => 'border rounded-xl p-3 text-center text-sm transition ' + (active ? 'border-indigo-500 bg-indigo-500/10' : 'border-white/10 hover:border-indigo-500');
+  document.getElementById('provGroq').className = cls(p==='groq');
+  document.getElementById('provOpenai').className = cls(p==='openai');
+  document.getElementById('provChatgpt').className = cls(p==='chatgpt');
 }
 
 function updateAIToggle(on) {
@@ -383,8 +392,10 @@ async function saveSettings() {
   };
   const groqKey = document.getElementById('setGroqKey').value;
   const openaiKey = document.getElementById('setOpenaiKey').value;
+  const chatgptToken = document.getElementById('setChatgptToken').value;
   if (groqKey) data.groq_api_key = groqKey;
   if (openaiKey) data.openai_api_key = openaiKey;
+  if (chatgptToken) data.chatgpt_access_token = chatgptToken;
 
   await api('/api/settings', { method:'PUT', body:JSON.stringify(data) });
   showToast('Settings berhasil disimpan!', 'success');
