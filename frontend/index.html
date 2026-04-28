@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WA AI Bot Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body { background: #0a0a0f; color: #e2e8f0; }
+    .glass { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); backdrop-filter: blur(12px); }
+    .glow { box-shadow: 0 0 20px rgba(99,102,241,0.15); }
+    .chat-bubble-in { background: rgba(255,255,255,0.06); border-radius: 4px 16px 16px 16px; }
+    .chat-bubble-out { background: linear-gradient(135deg,#4f46e5,#7c3aed); border-radius: 16px 4px 16px 16px; }
+    .sidebar-item:hover, .sidebar-item.active { background: rgba(99,102,241,0.15); }
+    .stat-card { background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.05)); border: 1px solid rgba(99,102,241,0.15); }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+    .fade-in { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .pulse-dot { animation: pulse-dot 1.5s infinite; }
+    .user-item { transition: all 0.15s ease; }
+    .user-item:hover { background: rgba(255,255,255,0.04); }
+    .toggle-bg { transition: background 0.2s; }
+    .toggle-dot { transition: transform 0.2s; }
+  </style>
+</head>
+<body class="h-screen overflow-hidden">
+
+<!-- LOGIN -->
+<div id="loginPage" class="flex items-center justify-center h-screen">
+  <div class="glass rounded-2xl p-8 w-full max-w-sm glow fade-in">
+    <div class="text-center mb-6">
+      <div class="text-4xl mb-2">🤖</div>
+      <h1 class="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">WA AI Bot</h1>
+      <p class="text-sm text-gray-500 mt-1">Admin Dashboard</p>
+    </div>
+    <div id="loginError" class="hidden bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg p-3 mb-4"></div>
+    <input id="loginUser" type="text" placeholder="Username" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 mb-3 outline-none focus:border-indigo-500 transition text-sm" value="admin">
+    <input id="loginPass" type="password" placeholder="Password" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 mb-4 outline-none focus:border-indigo-500 transition text-sm" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold rounded-xl py-3 transition text-sm">Masuk</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboardPage" class="hidden h-screen flex">
+  <!-- Sidebar -->
+  <aside class="w-72 border-r border-white/5 flex flex-col bg-[#0d0d14]">
+    <div class="p-4 border-b border-white/5 flex items-center gap-3">
+      <span class="text-2xl">🤖</span>
+      <div>
+        <h2 class="font-bold text-sm">WA AI Bot</h2>
+        <div id="statusBadge" class="flex items-center gap-1.5 mt-0.5">
+          <span class="w-2 h-2 rounded-full bg-gray-500"></span>
+          <span class="text-xs text-gray-500">Disconnected</span>
+        </div>
+      </div>
+    </div>
+    <!-- Nav -->
+    <nav class="p-2 space-y-1">
+      <div class="sidebar-item active rounded-xl px-4 py-2.5 cursor-pointer flex items-center gap-3 text-sm" onclick="showPage('dashboard')" data-page="dashboard">
+        <span>📊</span> Dashboard
+      </div>
+      <div class="sidebar-item rounded-xl px-4 py-2.5 cursor-pointer flex items-center gap-3 text-sm" onclick="showPage('chats')" data-page="chats">
+        <span>💬</span> Chat
+      </div>
+      <div class="sidebar-item rounded-xl px-4 py-2.5 cursor-pointer flex items-center gap-3 text-sm" onclick="showPage('users')" data-page="users">
+        <span>👥</span> Users
+      </div>
+      <div class="sidebar-item rounded-xl px-4 py-2.5 cursor-pointer flex items-center gap-3 text-sm" onclick="showPage('settings')" data-page="settings">
+        <span>⚙️</span> Settings
+      </div>
+    </nav>
+    <!-- User list in sidebar -->
+    <div class="flex-1 overflow-hidden flex flex-col mt-2">
+      <div class="px-4 pb-2">
+        <input id="searchUser" type="text" placeholder="🔍 Cari user..." class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs outline-none focus:border-indigo-500" oninput="searchUsers(this.value)">
+      </div>
+      <div id="userList" class="flex-1 overflow-y-auto px-2 space-y-0.5"></div>
+    </div>
+    <!-- Logout -->
+    <div class="p-3 border-t border-white/5">
+      <button onclick="doLogout()" class="w-full text-xs text-gray-500 hover:text-red-400 transition py-2">🚪 Logout</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 flex flex-col overflow-hidden">
+    <!-- DASHBOARD PAGE -->
+    <div id="page-dashboard" class="flex-1 overflow-y-auto p-6 space-y-6">
+      <h1 class="text-xl font-bold">Dashboard</h1>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="stat-card rounded-xl p-4"><p class="text-xs text-gray-400">Total Users</p><p id="statUsers" class="text-2xl font-bold mt-1">0</p></div>
+        <div class="stat-card rounded-xl p-4"><p class="text-xs text-gray-400">Total Pesan</p><p id="statMessages" class="text-2xl font-bold mt-1">0</p></div>
+        <div class="stat-card rounded-xl p-4"><p class="text-xs text-gray-400">Pesan Hari Ini</p><p id="statToday" class="text-2xl font-bold mt-1">0</p></div>
+        <div class="stat-card rounded-xl p-4"><p class="text-xs text-gray-400">AI Responses</p><p id="statAI" class="text-2xl font-bold mt-1">0</p></div>
+      </div>
+      <!-- QR Code -->
+      <div id="qrSection" class="hidden glass rounded-xl p-6 text-center">
+        <h3 class="font-semibold mb-3">Scan QR Code WhatsApp</h3>
+        <img id="qrImage" class="mx-auto rounded-lg" style="max-width:280px">
+        <p class="text-xs text-gray-500 mt-3">Buka WhatsApp → Menu → Linked Devices → Link a Device</p>
+      </div>
+      <!-- Bot Control -->
+      <div class="glass rounded-xl p-5">
+        <h3 class="font-semibold mb-3">Bot Control</h3>
+        <div class="flex gap-3">
+          <button onclick="startBot()" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-sm transition">▶ Start Bot</button>
+          <button onclick="logoutBot()" class="bg-red-600/20 hover:bg-red-600/40 text-red-400 px-4 py-2 rounded-lg text-sm transition">⏹ Logout WA</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHATS PAGE -->
+    <div id="page-chats" class="hidden flex-1 flex overflow-hidden">
+      <div id="chatArea" class="flex-1 flex flex-col">
+        <div class="flex-1 flex items-center justify-center text-gray-600">
+          <div class="text-center"><p class="text-4xl mb-3">💬</p><p class="text-sm">Pilih user dari sidebar untuk melihat chat</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- USERS PAGE -->
+    <div id="page-users" class="hidden flex-1 overflow-y-auto p-6">
+      <h1 class="text-xl font-bold mb-4">Daftar Users</h1>
+      <div id="usersTable" class="glass rounded-xl overflow-hidden">
+        <table class="w-full text-sm">
+          <thead><tr class="border-b border-white/5 text-left text-gray-400">
+            <th class="px-4 py-3">User</th><th class="px-4 py-3">Phone</th><th class="px-4 py-3">Pesan</th><th class="px-4 py-3">Terakhir</th><th class="px-4 py-3">AI</th>
+          </tr></thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div id="page-settings" class="hidden flex-1 overflow-y-auto p-6 space-y-4">
+      <h1 class="text-xl font-bold">Settings</h1>
+      <div class="glass rounded-xl p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <div><p class="font-medium text-sm">Global AI Auto-Reply</p><p class="text-xs text-gray-500">Aktifkan/nonaktifkan AI untuk semua user</p></div>
+          <button id="globalAIToggle" onclick="toggleGlobalAI()" class="toggle-bg w-12 h-6 rounded-full bg-gray-700 relative cursor-pointer"><span class="toggle-dot absolute top-1 left-1 w-4 h-4 bg-white rounded-full"></span></button>
+        </div>
+        <div><label class="text-sm text-gray-400">AI Model</label><input id="setModel" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mt-1 outline-none focus:border-indigo-500"></div>
+        <div><label class="text-sm text-gray-400">System Prompt</label><textarea id="setPrompt" rows="3" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mt-1 outline-none focus:border-indigo-500 resize-none"></textarea></div>
+        <button onclick="saveSettings()" class="bg-indigo-600 hover:bg-indigo-500 px-6 py-2 rounded-lg text-sm transition">💾 Simpan</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('wa_token');
+let currentJid = null;
+let eventSource = null;
+
+// === API Helper ===
+async function api(path, opts = {}) {
+  const res = await fetch(API + path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, ...opts.headers }
+  });
+  if (res.status === 401) { doLogout(); throw new Error('Unauthorized'); }
+  return res.json();
+}
+
+// === Auth ===
+async function doLogin() {
+  const u = document.getElementById('loginUser').value;
+  const p = document.getElementById('loginPass').value;
+  try {
+    const r = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ username: u, password: p }) });
+    if (r.token) { token = r.token; localStorage.setItem('wa_token', token); showDashboard(); }
+    else { showLoginError(r.error || 'Login gagal'); }
+  } catch(e) { showLoginError('Login gagal'); }
+}
+function showLoginError(msg) { const el = document.getElementById('loginError'); el.textContent = msg; el.classList.remove('hidden'); }
+function doLogout() { token = null; localStorage.removeItem('wa_token'); if(eventSource) eventSource.close(); location.reload(); }
+
+async function checkAuth() {
+  if (!token) return;
+  try { await api('/api/auth/verify'); showDashboard(); } catch(e) { token = null; localStorage.removeItem('wa_token'); }
+}
+
+// === Dashboard ===
+function showDashboard() {
+  document.getElementById('loginPage').classList.add('hidden');
+  document.getElementById('dashboardPage').classList.remove('hidden');
+  document.getElementById('dashboardPage').classList.add('flex');
+  loadStats(); loadUsers(); loadSettings(); connectSSE();
+}
+
+async function loadStats() {
+  try {
+    const s = await api('/api/stats');
+    document.getElementById('statUsers').textContent = s.totalUsers;
+    document.getElementById('statMessages').textContent = s.totalMessages;
+    document.getElementById('statToday').textContent = s.todayMessages;
+    document.getElementById('statAI').textContent = s.aiResponses;
+  } catch(e) {}
+}
+
+// === Pages ===
+function showPage(page) {
+  document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('hidden'));
+  document.getElementById('page-' + page).classList.remove('hidden');
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+  document.querySelector(`[data-page="${page}"]`).classList.add('active');
+  if (page === 'dashboard') loadStats();
+  if (page === 'users') renderUsersTable();
+}
+
+// === Users ===
+let allUsers = [];
+async function loadUsers() {
+  try { allUsers = await api('/api/chats'); renderUserList(); } catch(e) {}
+}
+
+function renderUserList() {
+  const el = document.getElementById('userList');
+  el.innerHTML = allUsers.map(u => `
+    <div class="user-item rounded-lg px-3 py-2.5 cursor-pointer flex items-center gap-3 ${currentJid === u.jid ? 'bg-white/5' : ''}" onclick="openChat('${u.jid}')">
+      <div class="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-sm font-bold flex-shrink-0">${(u.name || u.phone || '?')[0].toUpperCase()}</div>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-medium truncate">${u.name || u.phone}</p>
+        <p class="text-xs text-gray-500 truncate">${u.last_message || 'Belum ada pesan'}</p>
+      </div>
+      ${u.ai_enabled ? '<span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded">AI</span>' : ''}
+    </div>
+  `).join('');
+}
+
+function renderUsersTable() {
+  const el = document.getElementById('usersBody');
+  el.innerHTML = allUsers.map(u => `
+    <tr class="border-b border-white/5 hover:bg-white/[0.02]">
+      <td class="px-4 py-3"><div class="flex items-center gap-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-xs font-bold">${(u.name||u.phone||'?')[0].toUpperCase()}</div><span>${u.name||'-'}</span></div></td>
+      <td class="px-4 py-3 text-gray-400">${u.phone}</td>
+      <td class="px-4 py-3">${u.total_messages}</td>
+      <td class="px-4 py-3 text-gray-400 text-xs">${new Date(u.last_seen).toLocaleString('id')}</td>
+      <td class="px-4 py-3"><button onclick="toggleUserAI('${u.jid}',${u.ai_enabled?0:1})" class="text-xs px-2 py-1 rounded ${u.ai_enabled?'bg-emerald-500/20 text-emerald-400':'bg-gray-700 text-gray-400'}">${u.ai_enabled?'ON':'OFF'}</button></td>
+    </tr>
+  `).join('');
+}
+
+async function searchUsers(q) {
+  if (!q) { renderUserList(); return; }
+  try { const r = await api('/api/chats/search?q='+encodeURIComponent(q)); allUsers = r; renderUserList(); } catch(e) {}
+}
+
+async function toggleUserAI(jid, val) {
+  await api('/api/users/'+encodeURIComponent(jid)+'/ai', { method:'PUT', body: JSON.stringify({enabled:!!val}) });
+  loadUsers(); renderUsersTable();
+}
+
+// === Chat ===
+async function openChat(jid) {
+  currentJid = jid;
+  showPage('chats');
+  renderUserList();
+  const user = allUsers.find(u => u.jid === jid);
+  const msgs = await api('/api/chats/'+encodeURIComponent(jid)+'/messages');
+  const area = document.getElementById('chatArea');
+  area.innerHTML = `
+    <div class="px-5 py-3 border-b border-white/5 flex items-center gap-3 bg-[#0d0d14]">
+      <div class="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center font-bold text-sm">${(user?.name||user?.phone||'?')[0].toUpperCase()}</div>
+      <div><p class="font-semibold text-sm">${user?.name||user?.phone||jid}</p><p class="text-xs text-gray-500">${user?.phone||''}</p></div>
+    </div>
+    <div id="chatMessages" class="flex-1 overflow-y-auto p-5 space-y-3"></div>
+    <div class="p-4 border-t border-white/5 flex gap-2">
+      <input id="msgInput" type="text" placeholder="Ketik pesan..." class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500" onkeydown="if(event.key==='Enter')sendMsg()">
+      <button onclick="sendMsg()" class="bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 rounded-xl text-sm transition">Kirim</button>
+    </div>
+  `;
+  renderMessages(msgs.reverse());
+}
+
+function renderMessages(msgs) {
+  const el = document.getElementById('chatMessages');
+  if(!el) return;
+  el.innerHTML = msgs.map(m => `
+    <div class="flex ${m.direction==='outgoing'?'justify-end':'justify-start'} fade-in">
+      <div class="${m.direction==='outgoing'?'chat-bubble-out':'chat-bubble-in'} px-4 py-2.5 max-w-[70%]">
+        <p class="text-sm whitespace-pre-wrap">${escHtml(m.content)}</p>
+        <p class="text-[10px] ${m.direction==='outgoing'?'text-indigo-200':'text-gray-500'} mt-1 text-right">${m.is_ai_response?'🤖 ':''}${new Date(m.timestamp).toLocaleTimeString('id',{hour:'2-digit',minute:'2-digit'})}</p>
+      </div>
+    </div>
+  `).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+async function sendMsg() {
+  const inp = document.getElementById('msgInput');
+  const msg = inp.value.trim();
+  if(!msg||!currentJid) return;
+  inp.value = '';
+  try { await api('/api/chats/'+encodeURIComponent(currentJid)+'/send', { method:'POST', body:JSON.stringify({message:msg}) }); openChat(currentJid); } catch(e) { alert(e.message); }
+}
+
+function escHtml(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+// === Settings ===
+async function loadSettings() {
+  try {
+    const s = await api('/api/settings');
+    document.getElementById('setModel').value = s.ai_model || '';
+    document.getElementById('setPrompt').value = s.ai_system_prompt || '';
+    updateAIToggle(s.global_ai_enabled === 'true');
+  } catch(e) {}
+}
+
+function updateAIToggle(on) {
+  const btn = document.getElementById('globalAIToggle');
+  btn.className = 'toggle-bg w-12 h-6 rounded-full relative cursor-pointer ' + (on?'bg-indigo-600':'bg-gray-700');
+  btn.querySelector('span').style.transform = on?'translateX(24px)':'translateX(0)';
+  btn.dataset.on = on;
+}
+
+async function toggleGlobalAI() {
+  const btn = document.getElementById('globalAIToggle');
+  const newVal = btn.dataset.on !== 'true';
+  await api('/api/settings', { method:'PUT', body:JSON.stringify({global_ai_enabled:String(newVal)}) });
+  updateAIToggle(newVal);
+}
+
+async function saveSettings() {
+  await api('/api/settings', { method:'PUT', body:JSON.stringify({
+    ai_model: document.getElementById('setModel').value,
+    ai_system_prompt: document.getElementById('setPrompt').value
+  })});
+  alert('Settings saved!');
+}
+
+// === Bot Control ===
+async function startBot() { try { await api('/api/bot/start',{method:'POST'}); } catch(e) {} }
+async function logoutBot() { if(!confirm('Logout dari WhatsApp?')) return; try { await api('/api/bot/logout',{method:'POST'}); loadStats(); } catch(e) {} }
+
+// === SSE ===
+function connectSSE() {
+  if(eventSource) eventSource.close();
+  eventSource = new EventSource('/api/events?token='+token);
+  // Override: pass auth via query since SSE doesn't support headers easily
+  eventSource.close();
+  // Use polling instead for simplicity
+  setInterval(pollUpdates, 5000);
+  pollUpdates();
+}
+
+async function pollUpdates() {
+  try {
+    const st = await api('/api/bot/status');
+    updateStatusBadge(st.status);
+    if(st.status==='qr'&&st.qrCode) { document.getElementById('qrSection').classList.remove('hidden'); document.getElementById('qrImage').src=st.qrCode; }
+    else { document.getElementById('qrSection').classList.add('hidden'); }
+  } catch(e) {}
+}
+
+function updateStatusBadge(status) {
+  const el = document.getElementById('statusBadge');
+  const colors = {connected:'bg-emerald-500',connecting:'bg-yellow-500 pulse-dot',qr:'bg-yellow-500 pulse-dot',disconnected:'bg-gray-500'};
+  const labels = {connected:'Connected',connecting:'Connecting...',qr:'Scan QR',disconnected:'Disconnected'};
+  el.innerHTML = `<span class="w-2 h-2 rounded-full ${colors[status]||colors.disconnected}"></span><span class="text-xs text-gray-400">${labels[status]||status}</span>`;
+}
+
+// Init
+checkAuth();
+</script>
+</body>
+</html>
