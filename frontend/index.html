@@ -108,10 +108,13 @@
       <div class="glass rounded-xl p-5">
         <h3 class="font-semibold mb-3">Bot Control</h3>
         <div class="flex gap-3">
-          <button onclick="startBot()" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-sm transition">▶ Start Bot</button>
-          <button onclick="logoutBot()" class="bg-red-600/20 hover:bg-red-600/40 text-red-400 px-4 py-2 rounded-lg text-sm transition">⏹ Logout WA</button>
+          <button id="btnStart" onclick="startBot()" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-sm transition">▶ Start Bot</button>
+          <button id="btnLogout" onclick="logoutBot()" class="bg-red-600/20 hover:bg-red-600/40 text-red-400 px-4 py-2 rounded-lg text-sm transition">⏹ Logout WA</button>
         </div>
+        <p id="botMsg" class="text-xs mt-3 text-gray-500 hidden"></p>
       </div>
+      <!-- Toast -->
+      <div id="toast" class="fixed top-5 right-5 z-50 hidden glass rounded-xl px-5 py-3 text-sm font-medium shadow-lg fade-in"></div>
     </div>
 
     <!-- CHATS PAGE -->
@@ -336,8 +339,49 @@ async function saveSettings() {
 }
 
 // === Bot Control ===
-async function startBot() { try { await api('/api/bot/start',{method:'POST'}); } catch(e) {} }
-async function logoutBot() { if(!confirm('Logout dari WhatsApp?')) return; try { await api('/api/bot/logout',{method:'POST'}); loadStats(); } catch(e) {} }
+function showToast(msg, type = 'info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'fixed top-5 right-5 z-50 glass rounded-xl px-5 py-3 text-sm font-medium shadow-lg fade-in ' +
+    (type === 'success' ? 'text-emerald-400 border-emerald-500/30' : type === 'error' ? 'text-red-400 border-red-500/30' : 'text-indigo-300 border-indigo-500/30');
+  t.classList.remove('hidden');
+  setTimeout(() => t.classList.add('hidden'), 3000);
+}
+
+async function startBot() {
+  const btn = document.getElementById('btnStart');
+  btn.disabled = true;
+  btn.textContent = '⏳ Starting...';
+  try {
+    const r = await api('/api/bot/start', { method: 'POST' });
+    showToast(r.message || 'Bot dimulai!', 'success');
+    setTimeout(pollUpdates, 1000);
+    setTimeout(pollUpdates, 3000);
+  } catch(e) {
+    showToast('Gagal start bot: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Start Bot';
+  }
+}
+
+async function logoutBot() {
+  if (!confirm('Logout dari WhatsApp?')) return;
+  const btn = document.getElementById('btnLogout');
+  btn.disabled = true;
+  btn.textContent = '⏳ Logging out...';
+  try {
+    const r = await api('/api/bot/logout', { method: 'POST' });
+    showToast(r.message || 'Berhasil logout!', 'success');
+    setTimeout(pollUpdates, 1000);
+    loadStats();
+  } catch(e) {
+    showToast('Gagal logout: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⏹ Logout WA';
+  }
+}
 
 // === SSE ===
 function connectSSE() {
