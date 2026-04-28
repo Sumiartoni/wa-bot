@@ -62,22 +62,32 @@ async function chatgptFree(messages, model = 'auto') {
     force_rate_limit: false,
   };
 
+  const deviceId = randomUUID();
+
   const response = await fetch('https://chatgpt.com/backend-api/conversation', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
       'Accept': 'text/event-stream',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      'Referer': 'https://chatgpt.com/',
+      'Origin': 'https://chatgpt.com',
+      'oai-device-id': deviceId,
+      'oai-language': 'en-US',
     },
     body: JSON.stringify(body)
   });
 
   if (!response.ok) {
     const errText = await response.text();
-    console.error('[ChatGPT] Error response:', response.status, errText.substring(0, 200));
-    if (response.status === 401 || response.status === 403) {
-      throw new Error('ChatGPT token expired. Ambil token baru dari chatgpt.com/api/auth/session');
+    console.error('[ChatGPT] Error:', response.status, errText.substring(0, 300));
+    if (response.status === 401) {
+      throw new Error('ChatGPT token expired/invalid. Ambil token baru dari chatgpt.com/api/auth/session');
+    }
+    if (response.status === 403) {
+      throw new Error('ChatGPT request diblokir (Cloudflare). Coba ambil token baru atau gunakan GROQ.');
     }
     throw new Error(`ChatGPT error: ${response.status}`);
   }
