@@ -1,266 +1,127 @@
-const { generateResponse } = require('./groq');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
+const pino = require('pino');
+const path = require('path');
+const QRCode = require('qrcode');
+const { generateResponse } = require('./ai');
 const db = require('./database');
 
+const AUTH_DIR = path.join(__dirname, '..', 'data', 'auth');
+
+let sock = null;
+let qrCodeData = null;
 let connectionStatus = 'disconnected';
 let connectionInfo = null;
 let eventEmitter = null;
-
-const WA_API_URL = 'https://graph.facebook.com/v21.0';
 
 function setEventEmitter(emitter) {
   eventEmitter = emitter;
 }
 
 function emitEvent(event, data) {
-  if (eventEmitter) {
-    eventEmitter.emit(event, data);
-  }
+  if (eventEmitter) eventEmitter.emit(event, data);
 }
 
 function getStatus() {
-  const hasToken = !!process.env.WA_ACCESS_TOKEN;
-  const hasPhone = !!process.env.WA_PHONE_NUMBER_ID;
-  
-  if (hasToken && hasPhone) {
-    connectionStatus = 'connected';
-    connectionInfo = {
-      phoneId: process.env.WA_PHONE_NUMBER_ID,
-      connectedAt: new Date().toISOString()
-    };
-  }
-
-  return {
-    status: connectionStatus,
-    qrCode: null, // Official API tidak perlu QR
-    info: connectionInfo
-  };
+  return { status: connectionStatus, qrCode: qrCodeData, info: connectionInfo };
 }
 
-/**
- * Kirim pesan via WhatsApp Cloud API
- */
-async function sendMessage(to, text) {
-  const phoneId = process.env.WA_PHONE_NUMBER_ID;
-  const token = process.env.WA_ACCESS_TOKEN;
+function getSock() { return sock; }
 
-  if (!phoneId || !token) {
-    throw new Error('WA_PHONE_NUMBER_ID atau WA_ACCESS_TOKEN belum diset di .env');
-  }
+async function startBot() {
+  const logger = pino({ level: 'silent' });
+  const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
+  const { version } = await fetchLatestBaileysVersion();
 
-  // Format nomor: hapus + dan spasi, pastikan format internasional
-  const formattedNumber = to.replace(/[^0-9]/g, '');
-
-  const response = await fetch(`${WA_API_URL}/${phoneId}/messages`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      recipient_type: 'individual',
-      to: formattedNumber,
-      type: 'text',
-      text: { 
-        preview_url: false,
-        body: text 
-      }
-    })
+  sock = makeWASocket({
+    version, logger,
+    auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, logger) },
+    printQRInTerminal: true,
+    generateHighQualityLinkPreview: true,
+    defaultQueryTimeoutMs: undefined,
   });
 
-  const result = await response.json();
-
-  if (result.error) {
-    console.error('[BOT] Send error:', result.error);
-    throw new Error(result.error.message || 'Gagal mengirim pesan');
-  }
-
-  // Simpan pesan keluar ke database
-  const jid = formattedNumber;
-  db.saveMessage(jid, 'outgoing', text, 'text', false);
-
-  emitEvent('message', {
-    jid,
-    name: 'Admin',
-    content: text,
-    direction: 'outgoing',
-    isAi: false,
-    timestamp: new Date().toISOString()
+  sock.ev.on('connection.update', async (update) => {
+    const { connection, lastDisconnect, qr } = update;
+    if (qr) {
+      connectionStatus = 'qr';
+      try { qrCodeData = await QRCode.toDataURL(qr); emitEvent('qr', qrCodeData); console.log('[BOT] QR Code ready'); } catch(e) {}
+    }
+    if (connection === 'close') {
+      qrCodeData = null;
+      const code = lastDisconnect?.error?.output?.statusCode;
+      const reconnect = code !== DisconnectReason.loggedOut;
+      console.log(`[BOT] Closed. Code:${code} Reconnect:${reconnect}`);
+      if (reconnect) { connectionStatus = 'connecting'; emitEvent('status',{status:'connecting'}); setTimeout(()=>startBot(),3000); }
+      else { connectionStatus = 'disconnected'; connectionInfo = null; emitEvent('status',{status:'disconnected'}); }
+    }
+    if (connection === 'open') {
+      connectionStatus = 'connected'; qrCodeData = null;
+      connectionInfo = { user: sock.user, connectedAt: new Date().toISOString() };
+      emitEvent('status', { status: 'connected', info: connectionInfo });
+      console.log('[BOT] ✅ Connected as', sock.user?.name || sock.user?.id);
+    }
   });
 
-  console.log(`[BOT] ✅ Pesan terkirim ke ${formattedNumber}`);
-  return result;
+  sock.ev.on('creds.update', saveCreds);
+
+  sock.ev.on('messages.upsert', async ({ messages, type }) => {
+    if (type !== 'notify') return;
+    for (const msg of messages) await handleMessage(msg);
+  });
+
+  return sock;
 }
 
-/**
- * Handle incoming webhook dari WhatsApp Cloud API
- */
-async function handleWebhook(body) {
+async function handleMessage(msg) {
   try {
-    const entry = body.entry?.[0];
-    const changes = entry?.changes?.[0];
-    const value = changes?.value;
+    if (!msg.message || msg.key.fromMe) return;
+    if (msg.key.remoteJid === 'status@broadcast') return;
+    if (msg.key.remoteJid?.endsWith('@g.us')) return;
 
-    if (!value || !value.messages) return;
+    const jid = msg.key.remoteJid;
+    const pushName = msg.pushName || '';
+    const textContent = msg.message.conversation || msg.message.extendedTextMessage?.text || msg.message.imageMessage?.caption || msg.message.videoMessage?.caption || '';
+    if (!textContent) return;
 
-    const message = value.messages[0];
-    const contact = value.contacts?.[0];
+    console.log(`[BOT] 📩 ${pushName} (${jid}): ${textContent.substring(0,50)}...`);
 
-    // Hanya handle pesan teks
-    if (message.type !== 'text') {
-      console.log(`[BOT] Pesan non-teks diterima: ${message.type}`);
-      return;
-    }
+    db.upsertUser(jid, pushName);
+    db.saveMessage(jid, 'incoming', textContent, 'text', false);
+    emitEvent('message', { jid, name: pushName, content: textContent, direction: 'incoming', timestamp: new Date().toISOString() });
 
-    const from = message.from; // Nomor pengirim (format: 6281xxx)
-    const text = message.text?.body || '';
-    const pushName = contact?.profile?.name || '';
-
-    console.log(`[BOT] 📩 Pesan dari ${pushName} (${from}): ${text.substring(0, 50)}...`);
-
-    // Simpan user dan pesan masuk
-    db.upsertUser(from, pushName);
-    db.saveMessage(from, 'incoming', text, 'text', false);
-
-    // Emit event ke dashboard
-    emitEvent('message', {
-      jid: from,
-      name: pushName,
-      content: text,
-      direction: 'incoming',
-      timestamp: new Date().toISOString()
-    });
-
-    // Mark as read
-    await markAsRead(message.id);
-
-    // Cek apakah AI aktif
     const globalAI = db.getSetting('global_ai_enabled') === 'true';
-    const user = db.getUser(from);
+    const user = db.getUser(jid);
     const userAI = user ? user.ai_enabled === 1 : true;
+    if (!globalAI || !userAI) return;
 
-    if (!globalAI || !userAI) {
-      console.log(`[BOT] AI dinonaktifkan untuk ${from}. Skip auto-reply.`);
-      return;
-    }
-
-    // Ambil riwayat chat untuk konteks
-    const chatHistory = db.getRecentMessages(from, 8);
+    const chatHistory = db.getRecentMessages(jid, 8);
     const systemPrompt = db.getSetting('ai_system_prompt');
     const model = db.getSetting('ai_model');
+    const provider = db.getSetting('ai_provider') || 'groq';
 
-    // Generate balasan AI
-    const aiResponse = await generateResponse(text, chatHistory, systemPrompt, model);
-
-    // Kirim balasan
-    await sendWhatsAppMessage(from, aiResponse);
-
-    // Simpan pesan keluar
-    db.saveMessage(from, 'outgoing', aiResponse, 'text', true);
-
-    emitEvent('message', {
-      jid: from,
-      name: 'Bot',
-      content: aiResponse,
-      direction: 'outgoing',
-      isAi: true,
-      timestamp: new Date().toISOString()
-    });
-
-    console.log(`[BOT] 🤖 AI replied to ${pushName}: ${aiResponse.substring(0, 50)}...`);
-
+    const aiResponse = await generateResponse(textContent, chatHistory, systemPrompt, model, provider);
+    await sock.sendMessage(jid, { text: aiResponse });
+    db.saveMessage(jid, 'outgoing', aiResponse, 'text', true);
+    emitEvent('message', { jid, name: 'Bot', content: aiResponse, direction: 'outgoing', isAi: true, timestamp: new Date().toISOString() });
+    console.log(`[BOT] 🤖 Replied: ${aiResponse.substring(0,50)}...`);
   } catch (error) {
-    console.error('[BOT] Error handling webhook:', error);
+    console.error('[BOT] Error:', error);
   }
 }
 
-/**
- * Kirim pesan WhatsApp (internal, untuk auto-reply)
- */
-async function sendWhatsAppMessage(to, text) {
-  const phoneId = process.env.WA_PHONE_NUMBER_ID;
-  const token = process.env.WA_ACCESS_TOKEN;
-
-  const response = await fetch(`${WA_API_URL}/${phoneId}/messages`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      to: to,
-      type: 'text',
-      text: { body: text }
-    })
-  });
-
-  return response.json();
-}
-
-/**
- * Mark message as read
- */
-async function markAsRead(messageId) {
-  try {
-    const phoneId = process.env.WA_PHONE_NUMBER_ID;
-    const token = process.env.WA_ACCESS_TOKEN;
-
-    await fetch(`${WA_API_URL}/${phoneId}/messages`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        status: 'read',
-        message_id: messageId
-      })
-    });
-  } catch (e) {
-    // Tidak fatal jika gagal mark as read
-  }
-}
-
-/**
- * Verifikasi webhook (GET request dari Meta)
- */
-function verifyWebhook(query) {
-  const mode = query['hub.mode'];
-  const token = query['hub.verify_token'];
-  const challenge = query['hub.challenge'];
-  const verifyToken = process.env.WA_VERIFY_TOKEN || 'mywabot2026';
-
-  if (mode === 'subscribe' && token === verifyToken) {
-    console.log('[BOT] ✅ Webhook verified');
-    return challenge;
-  }
-
-  return null;
-}
-
-// Tidak perlu startBot/logout untuk Official API
-async function startBot() {
-  const status = getStatus();
-  if (status.status === 'connected') {
-    return { message: 'Bot sudah terhubung ke WhatsApp Cloud API' };
-  }
-  return { message: 'Set WA_ACCESS_TOKEN dan WA_PHONE_NUMBER_ID di .env' };
+async function sendMessage(jid, text) {
+  if (!sock || connectionStatus !== 'connected') throw new Error('WhatsApp belum terhubung');
+  await sock.sendMessage(jid, { text });
+  db.saveMessage(jid, 'outgoing', text, 'text', false);
+  emitEvent('message', { jid, name: 'Admin', content: text, direction: 'outgoing', isAi: false, timestamp: new Date().toISOString() });
+  return true;
 }
 
 async function logout() {
-  connectionStatus = 'disconnected';
-  connectionInfo = null;
-  return { message: 'Status direset. Untuk disconnect sepenuhnya, hapus token di Meta Developer Console.' };
+  try { if (sock) await sock.logout(); } catch(e) {}
+  const fs = require('fs');
+  if (fs.existsSync(AUTH_DIR)) fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+  connectionStatus = 'disconnected'; connectionInfo = null; qrCodeData = null; sock = null;
 }
 
-module.exports = {
-  startBot,
-  getStatus,
-  sendMessage,
-  handleWebhook,
-  verifyWebhook,
-  logout,
-  setEventEmitter
-};
+module.exports = { startBot, getStatus, getSock, sendMessage, logout, setEventEmitter };

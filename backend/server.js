@@ -59,8 +59,12 @@ app.get('/api/bot/status', authMiddleware, (req, res) => {
 
 app.post('/api/bot/start', authMiddleware, async (req, res) => {
   try {
-    const result = await bot.startBot();
-    res.json(result);
+    const status = bot.getStatus();
+    if (status.status === 'connected') {
+      return res.json({ message: 'Bot sudah terhubung' });
+    }
+    await bot.startBot();
+    res.json({ message: 'Bot sedang dimulai...' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -68,8 +72,8 @@ app.post('/api/bot/start', authMiddleware, async (req, res) => {
 
 app.post('/api/bot/logout', authMiddleware, async (req, res) => {
   try {
-    const result = await bot.logout();
-    res.json(result);
+    await bot.logout();
+    res.json({ message: 'Berhasil logout dari WhatsApp' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -204,30 +208,7 @@ app.get('/api/events', authMiddleware, (req, res) => {
   });
 });
 
-// ========================
-// WhatsApp Webhook (Official Cloud API)
-// ========================
 
-// Webhook verification (GET)
-app.get('/webhook', (req, res) => {
-  const challenge = bot.verifyWebhook(req.query);
-  if (challenge) {
-    console.log('[WEBHOOK] ✅ Verified');
-    return res.status(200).send(challenge);
-  }
-  console.log('[WEBHOOK] ❌ Verification failed');
-  return res.sendStatus(403);
-});
-
-// Incoming messages (POST)
-app.post('/webhook', (req, res) => {
-  // Respond immediately (Meta requires 200 within 5 seconds)
-  res.sendStatus(200);
-  // Process message async
-  bot.handleWebhook(req.body).catch(err => {
-    console.error('[WEBHOOK] Error:', err);
-  });
-});
 
 // ========================
 // Catch-all: serve frontend
