@@ -1,47 +1,35 @@
 const jwt = require('jsonwebtoken');
+const db = require('./database');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-change-this';
-const TOKEN_EXPIRY = '24h';
 
-/**
- * Generate JWT token for admin login
- */
-function generateToken(username) {
-  return jwt.sign({ username, role: 'admin' }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+function generateToken(agent) {
+  return jwt.sign({ id: agent.id, username: agent.username, name: agent.name, role: agent.role }, JWT_SECRET, { expiresIn: '24h' });
 }
 
-/**
- * Verify admin credentials
- */
 function verifyCredentials(username, password) {
-  const adminUser = process.env.ADMIN_USERNAME || 'admin';
-  const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
-  return username === adminUser && password === adminPass;
+  return db.getAgentByCredentials(username, password);
 }
 
-/**
- * Express middleware to protect routes
- */
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
-  
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Token tidak ditemukan' });
   }
-
-  const token = authHeader.split(' ')[1];
-
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
     req.user = decoded;
     next();
   } catch (error) {
-    return res.status(401).json({ error: 'Token tidak valid atau sudah expired' });
+    return res.status(401).json({ error: 'Token tidak valid atau expired' });
   }
 }
 
-module.exports = {
-  generateToken,
-  verifyCredentials,
-  authMiddleware
-};
+function adminOnly(req, res, next) {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Hanya admin yang bisa mengakses' });
+  }
+  next();
+}
+
+module.exports = { generateToken, verifyCredentials, authMiddleware, adminOnly };

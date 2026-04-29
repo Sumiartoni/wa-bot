@@ -92,7 +92,8 @@ async function handleMessage(msg) {
     const globalAI = db.getSetting('global_ai_enabled') === 'true';
     const user = db.getUser(jid);
     const userAI = user ? user.ai_enabled === 1 : true;
-    if (!globalAI || !userAI) return;
+    // Skip AI if disabled OR if chat is assigned to a human agent
+    if (!globalAI || !userAI || (user && user.assigned_agent_id)) return;
 
     const chatHistory = db.getRecentMessages(jid, 8);
     const systemPrompt = db.getSetting('ai_system_prompt');
@@ -112,8 +113,7 @@ async function handleMessage(msg) {
 async function sendMessage(jid, text) {
   if (!sock || connectionStatus !== 'connected') throw new Error('WhatsApp belum terhubung');
   await sock.sendMessage(jid, { text });
-  db.saveMessage(jid, 'outgoing', text, 'text', false);
-  emitEvent('message', { jid, name: 'Admin', content: text, direction: 'outgoing', isAi: false, timestamp: new Date().toISOString() });
+  // Don't save here - server.js saves with agent_id
   return true;
 }
 
