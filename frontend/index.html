@@ -1,166 +1,148 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>WA CS Bot - Customer Service</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>WA CS Bot — Customer Service Platform</title>
   <link rel="stylesheet" href="/style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="h-screen overflow-hidden">
 
 <!-- LOGIN -->
 <div id="loginPage" class="flex items-center justify-center h-screen">
-  <div class="glass rounded-2xl p-8 w-full max-w-sm glow fade-in">
+  <div class="card p-8 w-full max-w-sm fade-in" style="box-shadow:0 8px 40px rgba(99,102,241,.12)">
     <div class="text-center mb-6">
-      <div class="text-4xl mb-2">🎧</div>
-      <h1 class="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">WA CS Bot</h1>
-      <p class="text-sm text-gray-500 mt-1">Customer Service Dashboard</p>
+      <div class="avatar mx-auto mb-3" style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,rgb(var(--primary)),rgb(var(--accent)));font-size:24px"><i data-lucide="headphones" style="width:28px;height:28px;color:#fff"></i></div>
+      <h1 style="font-size:22px;font-weight:700;background:linear-gradient(135deg,rgb(var(--primary)),rgb(var(--accent)));-webkit-background-clip:text;-webkit-text-fill-color:transparent">WA CS Bot</h1>
+      <p style="font-size:12px;color:rgb(var(--text3));margin-top:4px">Customer Service Platform</p>
     </div>
-    <div id="loginError" class="hidden bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg p-3 mb-4"></div>
-    <input id="loginUser" type="text" placeholder="Username" class="mb-3" value="admin">
+    <div id="loginError" class="hidden" style="background:rgba(var(--danger),.08);border:1px solid rgba(var(--danger),.15);color:rgb(var(--danger));font-size:13px;border-radius:10px;padding:10px 14px;margin-bottom:14px"></div>
+    <input id="loginUser" placeholder="Username" class="mb-3" value="admin">
     <input id="loginPass" type="password" placeholder="Password" class="mb-4" onkeydown="if(event.key==='Enter')doLogin()">
-    <button onclick="doLogin()" class="btn btn-primary w-full py-3 font-semibold">Masuk</button>
+    <button onclick="doLogin()" class="btn btn-primary w-full justify-center py-3 font-semibold" style="font-size:14px"><i data-lucide="log-in" style="width:16px;height:16px"></i> Masuk</button>
   </div>
 </div>
 
-<!-- DASHBOARD -->
-<div id="app" class="hidden h-screen flex">
-  <!-- Sidebar Left -->
-  <aside id="sidebar" class="w-80 border-r border-white/5 flex flex-col bg-[#0d0d14]">
-    <div class="p-4 border-b border-white/5 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <span class="text-xl">🎧</span>
-        <div>
-          <h2 class="font-bold text-sm">WA CS Bot</h2>
-          <div id="statusBadge" class="flex items-center gap-1.5 mt-0.5"><span class="w-2 h-2 rounded-full bg-gray-500"></span><span class="text-xs text-gray-500">Offline</span></div>
-        </div>
+<!-- APP -->
+<div id="app" class="hidden h-screen" style="display:none;grid-template-columns:280px 1fr;grid-template-rows:1fr">
+  <!-- Sidebar -->
+  <aside class="surface border-r" style="border-color:rgba(var(--border),.06);display:flex;flex-direction:column;overflow:hidden">
+    <!-- Header -->
+    <div style="padding:16px 18px;border-bottom:1px solid rgba(var(--border),.06);display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="avatar" style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,rgb(var(--primary)),rgb(var(--accent)));font-size:14px"><i data-lucide="headphones" style="width:16px;height:16px;color:#fff"></i></div>
+        <div><p style="font-size:14px;font-weight:700">WA CS Bot</p><div id="statusBadge" style="display:flex;align-items:center;gap:5px;margin-top:2px"><span style="width:7px;height:7px;border-radius:50%;background:rgb(var(--text3))"></span><span style="font-size:11px;color:rgb(var(--text3))">Offline</span></div></div>
       </div>
-      <div id="agentInfo" class="text-right">
-        <p id="agentName" class="text-xs font-semibold"></p>
-        <p id="agentRole" class="text-[10px] text-gray-500"></p>
-      </div>
+      <button onclick="toggleTheme()" class="btn-ghost" style="padding:8px;border-radius:10px;border:1px solid rgba(var(--border),.08)"><i data-lucide="sun" id="themeIcon" style="width:16px;height:16px;color:rgb(var(--text2))"></i></button>
     </div>
     <!-- Nav -->
-    <nav class="p-2 space-y-1">
-      <div class="sb-item active rounded-xl px-4 py-2 cursor-pointer flex items-center gap-3 text-sm" onclick="showPage('dashboard')" data-page="dashboard">📊 Dashboard</div>
-      <div class="sb-item rounded-xl px-4 py-2 cursor-pointer flex items-center gap-3 text-sm" onclick="showPage('chats')" data-page="chats">💬 Chat</div>
-      <div class="sb-item rounded-xl px-4 py-2 cursor-pointer flex items-center gap-3 text-sm" onclick="showPage('quick')" data-page="quick">⚡ Quick Reply</div>
-      <div class="sb-item rounded-xl px-4 py-2 cursor-pointer flex items-center gap-3 text-sm adminOnly" onclick="showPage('agents')" data-page="agents">👤 Agents</div>
-      <div class="sb-item rounded-xl px-4 py-2 cursor-pointer flex items-center gap-3 text-sm adminOnly" onclick="showPage('settings')" data-page="settings">⚙️ Settings</div>
+    <nav style="padding:8px">
+      <div class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard"><i data-lucide="layout-dashboard" class="icon"></i>Dashboard</div>
+      <div class="nav-item" onclick="showPage('chats')" data-page="chats"><i data-lucide="message-circle" class="icon"></i>Chat<span id="chatBadge" class="hidden badge-count" style="margin-left:auto">0</span></div>
+      <div class="nav-item" onclick="showPage('quick')" data-page="quick"><i data-lucide="zap" class="icon"></i>Quick Reply</div>
+      <div class="nav-item adminOnly" onclick="showPage('agents')" data-page="agents"><i data-lucide="users" class="icon"></i>Agents</div>
+      <div class="nav-item adminOnly" onclick="showPage('settings')" data-page="settings"><i data-lucide="settings" class="icon"></i>Settings</div>
     </nav>
-    <!-- Filters -->
-    <div class="px-3 py-2 space-y-2">
-      <input id="searchInput" type="text" placeholder="🔍 Cari chat..." class="text-xs" oninput="filterChats()">
-      <div class="flex gap-1 flex-wrap">
-        <span class="tab active" onclick="setFilter('all',this)" data-f="all">Semua</span>
-        <span class="tab" onclick="setFilter('open',this)" data-f="open">🟡 Open</span>
-        <span class="tab" onclick="setFilter('in_progress',this)" data-f="in_progress">🔵 Progress</span>
-        <span class="tab" onclick="setFilter('resolved',this)" data-f="resolved">🟢 Done</span>
-        <span class="tab" onclick="setFilter('mine',this)" data-f="mine">👤 Saya</span>
+    <div class="divider" style="margin:4px 16px"></div>
+    <!-- Search & Filter -->
+    <div style="padding:8px 12px">
+      <div style="position:relative"><i data-lucide="search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:rgb(var(--text3))"></i><input id="searchInput" placeholder="Cari chat..." style="padding-left:34px;font-size:12px" oninput="filterChats()"></div>
+      <div style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap">
+        <span class="ftab active" onclick="setFilter('all',this)">Semua</span>
+        <span class="ftab" onclick="setFilter('open',this)">Open</span>
+        <span class="ftab" onclick="setFilter('in_progress',this)">Progress</span>
+        <span class="ftab" onclick="setFilter('resolved',this)">Done</span>
+        <span class="ftab" onclick="setFilter('mine',this)">Saya</span>
       </div>
     </div>
     <!-- Chat List -->
-    <div id="chatList" class="flex-1 overflow-y-auto px-2 space-y-0.5"></div>
+    <div id="chatList" style="flex:1;overflow-y:auto;padding:4px 8px"></div>
     <!-- Bottom -->
-    <div class="p-3 border-t border-white/5 flex justify-between items-center">
-      <span id="onlineCount" class="text-xs text-gray-500">0 online</span>
-      <button onclick="doLogout()" class="text-xs text-gray-500 hover:text-red-400">🚪 Logout</button>
+    <div style="padding:12px 16px;border-top:1px solid rgba(var(--border),.06);display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div id="userAvatar" class="avatar avatar-sm" style="background:rgb(var(--primary))">A</div>
+        <div><p id="agentName" style="font-size:12px;font-weight:600"></p><p id="agentRole" style="font-size:10px;color:rgb(var(--text3))"></p></div>
+      </div>
+      <button onclick="doLogout()" style="background:none;border:none;color:rgb(var(--text3))" title="Logout"><i data-lucide="log-out" style="width:16px;height:16px"></i></button>
     </div>
   </aside>
 
-  <!-- Main Content -->
-  <main class="flex-1 flex flex-col overflow-hidden" id="mainContent">
-    <!-- PAGE: DASHBOARD -->
-    <div id="page-dashboard" class="flex-1 overflow-y-auto p-6 space-y-6">
-      <h1 class="text-xl font-bold">Dashboard</h1>
-      <div class="grid grid-cols-2 lg:grid-cols-5 gap-3" id="statsGrid"></div>
-      <div id="qrSection" class="hidden glass rounded-xl p-6 text-center">
-        <h3 class="font-semibold mb-3">Scan QR Code WhatsApp</h3>
-        <img id="qrImage" class="mx-auto rounded-lg" style="max-width:260px">
+  <!-- Main -->
+  <main style="display:flex;flex-direction:column;overflow:hidden">
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" style="flex:1;overflow-y:auto;padding:28px 32px">
+      <h1 style="font-size:22px;font-weight:700;margin-bottom:20px">Dashboard</h1>
+      <div id="statsGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px"></div>
+      <div id="qrSection" class="hidden card" style="padding:28px;text-align:center;margin-bottom:24px"><h3 style="font-weight:600;margin-bottom:14px">Scan QR Code WhatsApp</h3><img id="qrImage" style="max-width:240px;border-radius:12px;margin:0 auto"></div>
+      <div class="card" style="padding:20px;margin-bottom:20px">
+        <h3 style="font-weight:600;font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:8px"><i data-lucide="radio" style="width:16px;height:16px;color:rgb(var(--primary))"></i>Bot Control</h3>
+        <div style="display:flex;gap:10px"><button id="btnStart" onclick="startBot()" class="btn btn-success"><i data-lucide="play" style="width:14px;height:14px"></i>Start Bot</button><button onclick="logoutBot()" class="btn btn-danger adminOnly"><i data-lucide="power" style="width:14px;height:14px"></i>Logout WA</button></div>
       </div>
-      <div class="glass rounded-xl p-5">
-        <h3 class="font-semibold mb-3 text-sm">Bot Control</h3>
-        <div class="flex gap-3">
-          <button id="btnStart" onclick="startBot()" class="btn btn-success">▶ Start Bot</button>
-          <button id="btnLogout" onclick="logoutBot()" class="btn btn-danger adminOnly">⏹ Logout WA</button>
-        </div>
-        <p id="botMsg" class="text-xs mt-2 text-gray-500 hidden"></p>
-      </div>
-      <div class="glass rounded-xl p-5">
-        <h3 class="font-semibold mb-3 text-sm">Agent Leaderboard</h3>
+      <div class="card" style="padding:20px">
+        <h3 style="font-weight:600;font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:8px"><i data-lucide="trophy" style="width:16px;height:16px;color:rgb(var(--warning))"></i>Agent Leaderboard</h3>
         <div id="agentLeaderboard"></div>
       </div>
     </div>
 
-    <!-- PAGE: CHATS (3-panel) -->
-    <div id="page-chats" class="hidden flex-1 flex overflow-hidden">
-      <!-- Chat area -->
-      <div id="chatArea" class="flex-1 flex flex-col">
-        <div class="flex-1 flex items-center justify-center text-gray-600">
-          <div class="text-center"><p class="text-4xl mb-3">💬</p><p class="text-sm">Pilih chat dari sidebar</p></div>
+    <!-- CHATS -->
+    <div id="page-chats" class="hidden" style="flex:1;display:flex;overflow:hidden">
+      <div id="chatArea" style="flex:1;display:flex;flex-direction:column"><div style="flex:1;display:flex;align-items:center;justify-content:center"><div style="text-align:center;color:rgb(var(--text3))"><i data-lucide="message-circle" style="width:48px;height:48px;margin:0 auto 12px;opacity:.3"></i><p style="font-size:14px">Pilih chat dari sidebar</p></div></div></div>
+      <div id="rightPanel" class="hidden surface" style="width:280px;border-left:1px solid rgba(var(--border),.06);overflow-y:auto;padding:20px"></div>
+    </div>
+
+    <!-- QUICK REPLIES -->
+    <div id="page-quick" class="hidden" style="flex:1;overflow-y:auto;padding:28px 32px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px"><h1 style="font-size:22px;font-weight:700">Quick Replies</h1><button onclick="showAddQR()" class="btn btn-primary"><i data-lucide="plus" style="width:14px;height:14px"></i>Tambah</button></div>
+      <div id="qrList" style="display:grid;gap:10px"></div>
+    </div>
+
+    <!-- AGENTS -->
+    <div id="page-agents" class="hidden adminOnly" style="flex:1;overflow-y:auto;padding:28px 32px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px"><h1 style="font-size:22px;font-weight:700">Agents</h1><button onclick="showAddAgent()" class="btn btn-primary"><i data-lucide="user-plus" style="width:14px;height:14px"></i>Tambah Agent</button></div>
+      <div id="agentList" style="display:grid;gap:10px"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="page-settings" class="hidden adminOnly" style="flex:1;overflow-y:auto;padding:28px 32px">
+      <h1 style="font-size:22px;font-weight:700;margin-bottom:20px">Settings</h1>
+      <div class="card" style="padding:20px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div><p style="font-size:14px;font-weight:600">Global AI Auto-Reply</p><p style="font-size:12px;color:rgb(var(--text3));margin-top:2px">AI membalas jika chat belum di-assign agent</p></div>
+          <button id="aiToggle" onclick="toggleAI()" class="toggle off"><span class="dot"></span></button>
         </div>
       </div>
-      <!-- Right panel -->
-      <div id="rightPanel" class="hidden w-72 border-l border-white/5 overflow-y-auto bg-[#0d0d14] p-4 space-y-4"></div>
-    </div>
-
-    <!-- PAGE: QUICK REPLIES -->
-    <div id="page-quick" class="hidden flex-1 overflow-y-auto p-6 space-y-4">
-      <div class="flex justify-between items-center"><h1 class="text-xl font-bold">Quick Replies</h1><button onclick="showAddQR()" class="btn btn-primary text-xs">+ Tambah</button></div>
-      <div id="qrList" class="space-y-2"></div>
-    </div>
-
-    <!-- PAGE: AGENTS -->
-    <div id="page-agents" class="hidden flex-1 overflow-y-auto p-6 space-y-4 adminOnly">
-      <div class="flex justify-between items-center"><h1 class="text-xl font-bold">Agents</h1><button onclick="showAddAgent()" class="btn btn-primary text-xs">+ Tambah Agent</button></div>
-      <div id="agentList" class="space-y-2"></div>
-    </div>
-
-    <!-- PAGE: SETTINGS -->
-    <div id="page-settings" class="hidden flex-1 overflow-y-auto p-6 space-y-4 adminOnly">
-      <h1 class="text-xl font-bold">Settings</h1>
-      <div class="glass rounded-xl p-5 space-y-4">
-        <div class="flex items-center justify-between">
-          <div><p class="font-medium text-sm">Global AI Auto-Reply</p><p class="text-xs text-gray-500">AI membalas jika chat belum di-assign agent</p></div>
-          <button id="aiToggle" onclick="toggleAI()" class="w-12 h-6 rounded-full bg-gray-700 relative"><span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform"></span></button>
+      <div class="card" style="padding:20px;margin-bottom:14px">
+        <h3 style="font-weight:600;font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:8px"><i data-lucide="cpu" style="width:16px;height:16px;color:rgb(var(--accent))"></i>AI Provider</h3>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+          <button onclick="setAIProvider('groq')" id="pGroq" class="card" style="padding:14px;text-align:center;cursor:pointer"><i data-lucide="zap" style="width:20px;height:20px;color:rgb(var(--success));margin:0 auto 6px"></i><p style="font-size:12px;font-weight:600">GROQ</p><p style="font-size:10px;color:rgb(var(--text3));margin-top:2px">Gratis</p></button>
+          <button onclick="setAIProvider('openai')" id="pOpenai" class="card" style="padding:14px;text-align:center;cursor:pointer"><i data-lucide="brain" style="width:20px;height:20px;color:rgb(var(--primary));margin:0 auto 6px"></i><p style="font-size:12px;font-weight:600">OpenAI</p><p style="font-size:10px;color:rgb(var(--text3));margin-top:2px">API Key</p></button>
+          <button onclick="setAIProvider('chatgpt')" id="pChatgpt" class="card" style="padding:14px;text-align:center;cursor:pointer"><i data-lucide="message-square" style="width:20px;height:20px;color:rgb(var(--cyan));margin:0 auto 6px"></i><p style="font-size:12px;font-weight:600">ChatGPT</p><p style="font-size:10px;color:rgb(var(--text3));margin-top:2px">Token</p></button>
         </div>
-      </div>
-      <div class="glass rounded-xl p-5 space-y-3">
-        <h3 class="font-semibold text-sm">AI Provider</h3>
-        <div class="grid grid-cols-3 gap-2">
-          <button onclick="setAIProvider('groq')" id="pGroq" class="border border-white/10 rounded-xl p-3 text-center text-xs">🟢 GROQ</button>
-          <button onclick="setAIProvider('openai')" id="pOpenai" class="border border-white/10 rounded-xl p-3 text-center text-xs">🤖 OpenAI</button>
-          <button onclick="setAIProvider('chatgpt')" id="pChatgpt" class="border border-white/10 rounded-xl p-3 text-center text-xs">💬 ChatGPT</button>
-        </div>
-        <input id="sModel" placeholder="Model: auto / llama-3.3-70b-versatile / gpt-4o-mini">
+        <input id="sModel" placeholder="Model: auto / llama-3.3-70b-versatile / gpt-4o-mini" style="margin-bottom:10px">
         <textarea id="sPrompt" rows="2" placeholder="System prompt..."></textarea>
       </div>
-      <div class="glass rounded-xl p-5 space-y-3">
-        <h3 class="font-semibold text-sm">API Keys</h3>
-        <div><label class="text-xs text-gray-500">GROQ API Key</label><input id="sGroqKey" type="password" placeholder="gsk_..."></div>
-        <div><label class="text-xs text-gray-500">OpenAI API Key</label><input id="sOpenaiKey" type="password" placeholder="sk-..."></div>
-        <div><label class="text-xs text-gray-500">ChatGPT Token</label><textarea id="sChatgptToken" rows="2" class="font-mono text-xs" placeholder="eyJ..."></textarea></div>
+      <div class="card" style="padding:20px;margin-bottom:14px">
+        <h3 style="font-weight:600;font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:8px"><i data-lucide="key" style="width:16px;height:16px;color:rgb(var(--warning))"></i>API Keys</h3>
+        <div style="margin-bottom:10px"><label style="font-size:11px;color:rgb(var(--text3))">GROQ API Key</label><input id="sGroqKey" type="password" placeholder="gsk_..."></div>
+        <div style="margin-bottom:10px"><label style="font-size:11px;color:rgb(var(--text3))">OpenAI API Key</label><input id="sOpenaiKey" type="password" placeholder="sk-..."></div>
+        <div><label style="font-size:11px;color:rgb(var(--text3))">ChatGPT Access Token</label><textarea id="sChatgptToken" rows="2" style="font-family:monospace;font-size:11px" placeholder="eyJ..."></textarea></div>
       </div>
-      <div class="glass rounded-xl p-5 space-y-3">
-        <h3 class="font-semibold text-sm">Labels</h3>
-        <div id="labelList" class="flex flex-wrap gap-2"></div>
-        <div class="flex gap-2"><input id="newLabel" placeholder="Nama label" class="flex-1"><input id="newLabelColor" type="color" value="#6366f1" class="w-10 h-9 p-1 rounded"><button onclick="addLabel()" class="btn btn-primary text-xs">+</button></div>
+      <div class="card" style="padding:20px;margin-bottom:14px">
+        <h3 style="font-weight:600;font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:8px"><i data-lucide="tag" style="width:16px;height:16px;color:rgb(var(--accent))"></i>Labels</h3>
+        <div id="labelList" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+        <div style="display:flex;gap:8px"><input id="newLabel" placeholder="Nama label" style="flex:1"><input id="newLabelColor" type="color" value="#6366f1" style="width:42px;padding:4px;border-radius:8px"><button onclick="addLabel()" class="btn btn-primary" style="padding:9px 14px"><i data-lucide="plus" style="width:14px;height:14px"></i></button></div>
       </div>
-      <button onclick="saveSettings()" class="btn btn-primary font-medium">💾 Simpan Settings</button>
+      <button onclick="saveSettings()" class="btn btn-primary" style="font-size:14px;padding:12px 28px"><i data-lucide="save" style="width:16px;height:16px"></i>Simpan Settings</button>
     </div>
   </main>
 </div>
 
 <!-- Toast -->
-<div id="toast" class="toast glass hidden fade-in"></div>
-
+<div id="toast" class="toast hidden fade-in" style="background:rgb(var(--bg2))"></div>
 <!-- Modal -->
-<div id="modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-  <div class="glass rounded-2xl p-6 w-full max-w-md fade-in" id="modalContent"></div>
-</div>
+<div id="modal" class="hidden modal-overlay"><div class="card fade-in" style="padding:28px;width:100%;max-width:420px" id="modalContent"></div></div>
 
 <script src="/app.js"></script>
+<script>lucide.createIcons()</script>
 </body>
 </html>
