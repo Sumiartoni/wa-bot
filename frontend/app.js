@@ -225,5 +225,7 @@ if(s.status==='qr'&&s.qrCode){document.getElementById('qrSection').classList.rem
 // Modal
 function showModal(title,body,onSave){document.getElementById('modal').classList.remove('hidden');document.getElementById('modalContent').innerHTML=`<h3 style="font-size:18px;font-weight:700;margin-bottom:18px">${title}</h3>${body}<div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end"><button onclick="hideModal()" class="btn btn-ghost">Batal</button><button onclick="(${onSave})()" class="btn btn-primary">Simpan</button></div>`;icons()}
 function hideModal(){document.getElementById('modal').classList.add('hidden')}
+function openModal(html){document.getElementById('modal').classList.remove('hidden');document.getElementById('modalContent').innerHTML=html;icons()}
+function closeModal(){hideModal()}
 
 checkAuth();
