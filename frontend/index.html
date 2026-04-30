@@ -112,7 +112,22 @@
           <button onclick="setAIProvider('openrouter')" id="pOpenrouter" class="card" style="padding:14px;text-align:center;cursor:pointer"><i data-lucide="brain" style="width:20px;height:20px;color:var(--primary);margin:0 auto 6px"></i><p style="font-size:12px;font-weight:600">OpenRouter</p><p style="font-size:10px;color:var(--text3);margin-top:2px">API Key</p></button>
           <button onclick="setAIProvider('chatgpt')" id="pChatgpt" class="card" style="padding:14px;text-align:center;cursor:pointer"><i data-lucide="message-square" style="width:20px;height:20px;color:var(--cyan);margin:0 auto 6px"></i><p style="font-size:12px;font-weight:600">ChatGPT</p><p style="font-size:10px;color:var(--text3);margin-top:2px">Token</p></button>
         </div>
-        <input id="sModel" placeholder="Model: llama-3.3-70b-versatile / google/gemini-2.0-flash-001" style="margin-bottom:10px">
+        <input id="sModel" list="modelSuggestions" placeholder="Ketik nama model... (misal: google/gemini-2.0-flash-001)" style="margin-bottom:10px">
+        <datalist id="modelSuggestions">
+          <!-- OpenRouter Models -->
+          <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash (Gratis/OpenRouter)</option>
+          <option value="google/gemini-2.0-pro-exp-02-05:free">Gemini 2.0 Pro (Gratis/OpenRouter)</option>
+          <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet (OpenRouter)</option>
+          <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B (OpenRouter)</option>
+          <option value="deepseek/deepseek-r1">DeepSeek R1 (OpenRouter)</option>
+          <option value="openai/gpt-4o-mini">GPT-4o Mini (OpenRouter)</option>
+          <!-- GROQ Models -->
+          <option value="llama-3.3-70b-versatile">Llama 3.3 70B (GROQ)</option>
+          <option value="mixtral-8x7b-32768">Mixtral 8x7B (GROQ)</option>
+          <option value="gemma2-9b-it">Gemma 2 9B (GROQ)</option>
+          <!-- ChatGPT Official -->
+          <option value="auto">Auto (ChatGPT)</option>
+        </datalist>
         <textarea id="sPrompt" rows="2" placeholder="System prompt..."></textarea>
       </div>
       <div class="card" style="padding:20px;margin-bottom:14px">
