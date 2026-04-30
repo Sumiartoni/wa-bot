@@ -100,10 +100,29 @@ async function handleMessage(msg) {
     const model = db.getSetting('ai_model');
     const provider = db.getSetting('ai_provider') || 'groq';
 
-    const aiResponse = await generateResponse(textContent, chatHistory, systemPrompt, model, provider);
-    await sock.sendMessage(jid, { text: aiResponse });
-    db.saveMessage(jid, 'outgoing', aiResponse, 'text', true);
-    emitEvent('message', { jid, name: 'Bot', content: aiResponse, direction: 'outgoing', isAi: true, timestamp: new Date().toISOString() });
+    let aiResponse = await generateResponse(textContent, chatHistory, systemPrompt, model, provider);
+    let sendQris = false;
+    
+    if (aiResponse.includes('[KIRIM_QRIS]')) {
+      sendQris = true;
+      aiResponse = aiResponse.replace(/\[KIRIM_QRIS\]/g, '').trim();
+    }
+
+    if (aiResponse) {
+      await sock.sendMessage(jid, { text: aiResponse });
+      db.saveMessage(jid, 'outgoing', aiResponse, 'text', true);
+      emitEvent('message', { jid, name: 'Bot', content: aiResponse, direction: 'outgoing', isAi: true, timestamp: new Date().toISOString() });
+    }
+
+    if (sendQris) {
+      const qrisUrl = db.getSetting('qris_url');
+      if (qrisUrl) {
+        await sock.sendMessage(jid, { image: { url: qrisUrl }, caption: 'Silakan scan QRIS di atas untuk melakukan pembayaran. 🙏' });
+        db.saveMessage(jid, 'outgoing', '[Mengirim Gambar QRIS]', 'image', true);
+        emitEvent('message', { jid, name: 'Bot', content: '[Mengirim Gambar QRIS]', direction: 'outgoing', isAi: true, timestamp: new Date().toISOString() });
+      }
+    }
+
     console.log(`[BOT] 🤖 Replied: ${aiResponse.substring(0,50)}...`);
   } catch (error) {
     console.error('[BOT] Error:', error);
