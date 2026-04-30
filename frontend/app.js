@@ -119,26 +119,36 @@ async function loadSettings(){try{const s=await api('/api/settings');document.ge
 function setAIProvider(p){aiProvider=p;updateProviderUI()}
 function updateProviderUI(){['pGroq','pOpenrouter','pChatgpt'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const k=id.replace('p','').toLowerCase();el.style.borderColor=aiProvider===k?'var(--primary)':'var(--border)';el.style.background=aiProvider===k?'rgba(99,102,241,.08)':''});updateModelList()}
 
-async function updateModelList(){const dl=document.getElementById('modelSuggestions');if(!dl)return;
+async function updateModelList(){const sel=document.getElementById('sModelSelect');const mod=document.getElementById('sModel');if(!sel||!mod)return;
+const currentVal=mod.value;
+let html='';
 if(aiProvider==='openrouter'){
-dl.innerHTML='<option value="">Loading models...</option>';
+sel.innerHTML='<option value="">Memuat model dari OpenRouter...</option>';
 try{
 const res=await fetch('https://openrouter.ai/api/v1/models');
 const data=await res.json();
-dl.innerHTML=data.data.map(m=>`<option value="${m.id}">${m.name} (${m.pricing.prompt==='0'?'Gratis':'Berbayar'})</option>`).join('');
+html=data.data.map(m=>`<option value="${m.id}">${m.name} (${m.pricing.prompt==='0'?'Gratis':'Berbayar'})</option>`).join('');
 }catch(e){
-dl.innerHTML=`<option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash (OpenRouter/Gratis)</option>
+html=`<option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash (OpenRouter/Gratis)</option>
 <option value="deepseek/deepseek-r1">DeepSeek R1</option>
 <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
 <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B</option>`;
 }
 }else if(aiProvider==='groq'){
-dl.innerHTML=`<option value="llama-3.3-70b-versatile">Llama 3.3 70B (GROQ)</option>
+html=`<option value="llama-3.3-70b-versatile">Llama 3.3 70B (GROQ)</option>
 <option value="mixtral-8x7b-32768">Mixtral 8x7B (GROQ)</option>
 <option value="gemma2-9b-it">Gemma 2 9B (GROQ)</option>`;
 }else{
-dl.innerHTML=`<option value="auto">Auto (ChatGPT)</option><option value="gpt-4">GPT-4</option>`;
-}}
+html=`<option value="auto">Auto (ChatGPT)</option><option value="gpt-4">GPT-4</option>`;
+}
+html+='<option value="custom">-- Ketik Manual (Custom) --</option>';
+sel.innerHTML=html;
+
+// Try to select the current model in the dropdown, if not found, select custom
+let found=false;
+for(let i=0;i<sel.options.length;i++){if(sel.options[i].value===currentVal){sel.selectedIndex=i;found=true;break;}}
+if(!found&&currentVal){sel.value='custom';mod.style.display='block';}else{mod.style.display='none';}
+}
 function updateAIToggle(on){const b=document.getElementById('aiToggle');b.className='toggle '+(on?'on':'off');b.dataset.on=on}
 async function toggleAI(){const b=document.getElementById('aiToggle');const v=b.dataset.on!=='true';await api('/api/settings',{method:'PUT',body:JSON.stringify({global_ai_enabled:String(v)})});updateAIToggle(v)}
 async function saveSettings(){const d={ai_provider:aiProvider,ai_model:document.getElementById('sModel').value,ai_system_prompt:document.getElementById('sPrompt').value};const g=document.getElementById('sGroqKey').value,o=document.getElementById('sOpenrouterKey').value,c=document.getElementById('sChatgptToken').value;if(g)d.groq_api_key=g;if(o)d.openrouter_api_key=o;if(c)d.chatgpt_access_token=c;await api('/api/settings',{method:'PUT',body:JSON.stringify(d)});toast('Settings disimpan!','success')}
