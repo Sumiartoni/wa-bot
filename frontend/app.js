@@ -119,14 +119,19 @@ async function loadSettings(){try{const s=await api('/api/settings');document.ge
 function setAIProvider(p){aiProvider=p;updateProviderUI()}
 function updateProviderUI(){['pGroq','pOpenrouter','pChatgpt'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const k=id.replace('p','').toLowerCase();el.style.borderColor=aiProvider===k?'var(--primary)':'var(--border)';el.style.background=aiProvider===k?'rgba(99,102,241,.08)':''});updateModelList()}
 
-function updateModelList(){const dl=document.getElementById('modelSuggestions');if(!dl)return;
+async function updateModelList(){const dl=document.getElementById('modelSuggestions');if(!dl)return;
 if(aiProvider==='openrouter'){
+dl.innerHTML='<option value="">Loading models...</option>';
+try{
+const res=await fetch('https://openrouter.ai/api/v1/models');
+const data=await res.json();
+dl.innerHTML=data.data.map(m=>`<option value="${m.id}">${m.name} (${m.pricing.prompt==='0'?'Gratis':'Berbayar'})</option>`).join('');
+}catch(e){
 dl.innerHTML=`<option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash (OpenRouter/Gratis)</option>
-<option value="google/gemini-2.0-pro-exp-02-05:free">Gemini 2.0 Pro (OpenRouter/Gratis)</option>
 <option value="deepseek/deepseek-r1">DeepSeek R1</option>
 <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
-<option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B</option>
-<option value="openai/gpt-4o-mini">GPT-4o Mini</option>`;
+<option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B</option>`;
+}
 }else if(aiProvider==='groq'){
 dl.innerHTML=`<option value="llama-3.3-70b-versatile">Llama 3.3 70B (GROQ)</option>
 <option value="mixtral-8x7b-32768">Mixtral 8x7B (GROQ)</option>
