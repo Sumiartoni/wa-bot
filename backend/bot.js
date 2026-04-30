@@ -13,6 +13,8 @@ let connectionStatus = 'disconnected';
 let connectionInfo = null;
 let eventEmitter = null;
 
+const userMessageQueues = {};
+
 function setEventEmitter(emitter) {
   eventEmitter = emitter;
 }
@@ -95,46 +97,66 @@ async function handleMessage(msg) {
     // Skip AI if disabled OR if chat is assigned to a human agent
     if (!globalAI || !userAI || (user && user.assigned_agent_id)) return;
 
-    const chatHistory = db.getRecentMessages(jid, 8);
-    let systemPrompt = db.getSetting('ai_system_prompt');
-    const model = db.getSetting('ai_model');
-    const provider = db.getSetting('ai_provider') || 'groq';
-
-    // Inject products into prompt
-    const products = db.getProducts();
-    if (products && products.length > 0) {
-      const productList = products.map(p => `- ${p.name}: ${p.price} (${p.description || 'Tidak ada deskripsi'})`).join('\n');
-      systemPrompt += '\n\nInformasi Produk & Harga:\n' + productList + '\n\nGunakan data produk ini jika pelanggan bertanya tentang harga atau ketersediaan.';
+    if (!userMessageQueues[jid]) {
+      userMessageQueues[jid] = { texts: [], timer: null };
     }
 
-    let aiResponse = await generateResponse(textContent, chatHistory, systemPrompt, model, provider);
-    let sendQris = false;
-    
-    if (aiResponse.includes('[KIRIM_QRIS]')) {
-      sendQris = true;
-      aiResponse = aiResponse.replace(/\[KIRIM_QRIS\]/g, '').trim();
+    userMessageQueues[jid].texts.push(textContent);
+
+    if (userMessageQueues[jid].timer) {
+      clearTimeout(userMessageQueues[jid].timer);
     }
 
-    if (aiResponse) {
-      await sock.sendMessage(jid, { text: aiResponse });
-      db.saveMessage(jid, 'outgoing', aiResponse, 'text', true);
-      emitEvent('message', { jid, name: 'Bot', content: aiResponse, direction: 'outgoing', isAi: true, timestamp: new Date().toISOString() });
-    }
+    userMessageQueues[jid].timer = setTimeout(async () => {
+      const combinedText = userMessageQueues[jid].texts.join('\n');
+      userMessageQueues[jid].texts = [];
+      userMessageQueues[jid].timer = null;
 
-    if (sendQris) {
-      const qrisUrl = db.getSetting('qris_url');
-      if (qrisUrl) {
-        let finalUrl = qrisUrl;
-        if (qrisUrl.startsWith('/uploads/')) {
-          finalUrl = path.join(__dirname, '..', 'data', qrisUrl);
+      try {
+        const chatHistory = db.getRecentMessages(jid, 8);
+        let systemPrompt = db.getSetting('ai_system_prompt');
+        const model = db.getSetting('ai_model');
+        const provider = db.getSetting('ai_provider') || 'groq';
+
+        // Inject products into prompt
+        const products = db.getProducts();
+        if (products && products.length > 0) {
+          const productList = products.map(p => `- ${p.name}: ${p.price} (${p.description || 'Tidak ada deskripsi'})`).join('\n');
+          systemPrompt += '\n\nInformasi Produk & Harga:\n' + productList + '\n\nGunakan data produk ini jika pelanggan bertanya tentang harga atau ketersediaan.';
         }
-        await sock.sendMessage(jid, { image: { url: finalUrl }, caption: 'Silakan scan QRIS di atas untuk melakukan pembayaran. 🙏' });
-        db.saveMessage(jid, 'outgoing', '[Mengirim Gambar QRIS]', 'image', true);
-        emitEvent('message', { jid, name: 'Bot', content: '[Mengirim Gambar QRIS]', direction: 'outgoing', isAi: true, timestamp: new Date().toISOString() });
-      }
-    }
 
-    console.log(`[BOT] 🤖 Replied: ${aiResponse.substring(0,50)}...`);
+        let aiResponse = await generateResponse(combinedText, chatHistory, systemPrompt, model, provider);
+        let sendQris = false;
+        
+        if (aiResponse.includes('[KIRIM_QRIS]')) {
+          sendQris = true;
+          aiResponse = aiResponse.replace(/\[KIRIM_QRIS\]/g, '').trim();
+        }
+
+        if (aiResponse) {
+          await sock.sendMessage(jid, { text: aiResponse });
+          db.saveMessage(jid, 'outgoing', aiResponse, 'text', true);
+          emitEvent('message', { jid, name: 'Bot', content: aiResponse, direction: 'outgoing', isAi: true, timestamp: new Date().toISOString() });
+        }
+
+        if (sendQris) {
+          const qrisUrl = db.getSetting('qris_url');
+          if (qrisUrl) {
+            let finalUrl = qrisUrl;
+            if (qrisUrl.startsWith('/uploads/')) {
+              finalUrl = path.join(__dirname, '..', 'data', qrisUrl);
+            }
+            await sock.sendMessage(jid, { image: { url: finalUrl }, caption: 'Silakan scan QRIS di atas untuk melakukan pembayaran. 🙏' });
+            db.saveMessage(jid, 'outgoing', '[Mengirim Gambar QRIS]', 'image', true);
+            emitEvent('message', { jid, name: 'Bot', content: '[Mengirim Gambar QRIS]', direction: 'outgoing', isAi: true, timestamp: new Date().toISOString() });
+          }
+        }
+        console.log(`[BOT] 🤖 Replied to ${jid}`);
+      } catch (err) {
+        console.error('[BOT] AI Error:', err);
+      }
+    }, 3500);
+
   } catch (error) {
     console.error('[BOT] Error:', error);
   }
