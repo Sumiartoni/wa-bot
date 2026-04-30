@@ -117,7 +117,23 @@ async function addLabel(){const n=document.getElementById('newLabel').value,c=do
 async function deleteLabel(id){await api('/api/labels/'+id,{method:'DELETE'});await loadLabels();renderLabels()}
 async function loadSettings(){try{const s=await api('/api/settings');document.getElementById('sModel').value=s.ai_model||'';document.getElementById('sPrompt').value=s.ai_system_prompt||'';document.getElementById('sGroqKey').value=s.groq_api_key||'';document.getElementById('sOpenrouterKey').value=s.openrouter_api_key||'';document.getElementById('sChatgptToken').value=s.chatgpt_access_token||'';aiProvider=s.ai_provider||'groq';updateProviderUI();updateAIToggle(s.global_ai_enabled==='true');renderLabels()}catch(e){}}
 function setAIProvider(p){aiProvider=p;updateProviderUI()}
-function updateProviderUI(){['pGroq','pOpenrouter','pChatgpt'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const k=id.replace('p','').toLowerCase();el.style.borderColor=aiProvider===k?'var(--primary)':'var(--border)';el.style.background=aiProvider===k?'rgba(99,102,241,.08)':''})}
+function updateProviderUI(){['pGroq','pOpenrouter','pChatgpt'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const k=id.replace('p','').toLowerCase();el.style.borderColor=aiProvider===k?'var(--primary)':'var(--border)';el.style.background=aiProvider===k?'rgba(99,102,241,.08)':''});updateModelList()}
+
+function updateModelList(){const dl=document.getElementById('modelSuggestions');if(!dl)return;
+if(aiProvider==='openrouter'){
+dl.innerHTML=`<option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash (OpenRouter/Gratis)</option>
+<option value="google/gemini-2.0-pro-exp-02-05:free">Gemini 2.0 Pro (OpenRouter/Gratis)</option>
+<option value="deepseek/deepseek-r1">DeepSeek R1</option>
+<option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+<option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B</option>
+<option value="openai/gpt-4o-mini">GPT-4o Mini</option>`;
+}else if(aiProvider==='groq'){
+dl.innerHTML=`<option value="llama-3.3-70b-versatile">Llama 3.3 70B (GROQ)</option>
+<option value="mixtral-8x7b-32768">Mixtral 8x7B (GROQ)</option>
+<option value="gemma2-9b-it">Gemma 2 9B (GROQ)</option>`;
+}else{
+dl.innerHTML=`<option value="auto">Auto (ChatGPT)</option><option value="gpt-4">GPT-4</option>`;
+}}
 function updateAIToggle(on){const b=document.getElementById('aiToggle');b.className='toggle '+(on?'on':'off');b.dataset.on=on}
 async function toggleAI(){const b=document.getElementById('aiToggle');const v=b.dataset.on!=='true';await api('/api/settings',{method:'PUT',body:JSON.stringify({global_ai_enabled:String(v)})});updateAIToggle(v)}
 async function saveSettings(){const d={ai_provider:aiProvider,ai_model:document.getElementById('sModel').value,ai_system_prompt:document.getElementById('sPrompt').value};const g=document.getElementById('sGroqKey').value,o=document.getElementById('sOpenrouterKey').value,c=document.getElementById('sChatgptToken').value;if(g)d.groq_api_key=g;if(o)d.openrouter_api_key=o;if(c)d.chatgpt_access_token=c;await api('/api/settings',{method:'PUT',body:JSON.stringify(d)});toast('Settings disimpan!','success')}
