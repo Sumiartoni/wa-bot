@@ -96,9 +96,16 @@ async function handleMessage(msg) {
     if (!globalAI || !userAI || (user && user.assigned_agent_id)) return;
 
     const chatHistory = db.getRecentMessages(jid, 8);
-    const systemPrompt = db.getSetting('ai_system_prompt');
+    let systemPrompt = db.getSetting('ai_system_prompt');
     const model = db.getSetting('ai_model');
     const provider = db.getSetting('ai_provider') || 'groq';
+
+    // Inject products into prompt
+    const products = db.getProducts();
+    if (products && products.length > 0) {
+      const productList = products.map(p => `- ${p.name}: ${p.price} (${p.description || 'Tidak ada deskripsi'})`).join('\n');
+      systemPrompt += '\n\nInformasi Produk & Harga:\n' + productList + '\n\nGunakan data produk ini jika pelanggan bertanya tentang harga atau ketersediaan.';
+    }
 
     let aiResponse = await generateResponse(textContent, chatHistory, systemPrompt, model, provider);
     let sendQris = false;

@@ -21,7 +21,7 @@ loadAll();setInterval(pollStatus,5000);pollStatus();if('Notification'in window)N
 async function loadAll(){loadChats();loadStats();loadSettings();loadLabels();loadAgents();loadQuickReplies();loadAgentStats()}
 
 // Pages
-function showPage(p){document.querySelectorAll('[id^="page-"]').forEach(e=>e.classList.add('hidden'));document.getElementById('page-'+p).classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));document.querySelector(`[data-page="${p}"]`)?.classList.add('active');if(p==='dashboard'){loadStats();loadAgentStats()}if(p==='quick')renderQR();if(p==='agents')renderAgents();icons()}
+function showPage(p){document.querySelectorAll('[id^="page-"]').forEach(e=>e.classList.add('hidden'));const pg=document.getElementById('page-'+p);if(pg)pg.classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));const nv=document.querySelector(`[data-page="${p}"]`);if(nv)nv.classList.add('active');if(p==='dashboard'){loadStats();loadAgentStats()}if(p==='quick')renderQR();if(p==='agents')renderAgents();if(p==='products')loadProducts();icons()}
 
 // Stats
 async function loadStats(){try{const s=await api('/api/stats');document.getElementById('statsGrid').innerHTML=
@@ -166,6 +166,53 @@ async function uploadQris(){
     else{toast(data.error||'Gagal unggah','error');}
   }catch(e){toast('Gagal unggah gambar','error');}
   fileInput.value='';
+}
+
+// Products
+let allProducts=[];
+async function loadProducts(){try{allProducts=await api('/api/products');renderProducts()}catch(e){}}
+function renderProducts(){
+  const el=document.getElementById('productGrid');if(!el)return;
+  el.innerHTML=allProducts.map(p=>`
+    <div class="card" style="padding:16px;display:flex;flex-direction:column;justify-content:space-between">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <h4 style="font-weight:700;font-size:16px">${p.name}</h4>
+          <span style="font-weight:600;color:var(--success);font-size:14px">${p.price}</span>
+        </div>
+        <p style="font-size:12px;color:var(--text3);margin-top:8px">${p.description||'Tidak ada keterangan'}</p>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button onclick="openProductModal(${p.id})" class="btn btn-ghost" style="flex:1;padding:8px;font-size:12px"><i data-lucide="edit" style="width:14px;height:14px"></i>Edit</button>
+        <button onclick="deleteProduct(${p.id})" class="btn btn-ghost" style="flex:1;padding:8px;font-size:12px;color:var(--danger)"><i data-lucide="trash-2" style="width:14px;height:14px"></i>Hapus</button>
+      </div>
+    </div>`).join('');
+  lucide.createIcons();
+}
+function openProductModal(id=null){
+  const p=id?allProducts.find(x=>x.id===id):null;
+  const html=`<h3 style="font-weight:700;font-size:18px;margin-bottom:16px">${id?'Edit':'Tambah'} Produk</h3>
+    <input id="pName" placeholder="Nama Produk (Misal: Sepatu Nike)" style="margin-bottom:10px" value="${p?p.name:''}">
+    <input id="pPrice" placeholder="Harga (Misal: Rp 500.000)" style="margin-bottom:10px" value="${p?p.price:''}">
+    <textarea id="pDesc" rows="3" placeholder="Keterangan / Detail Produk...">${p?p.description:''}</textarea>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
+      <button onclick="closeModal()" class="btn btn-ghost">Batal</button>
+      <button onclick="saveProduct(${id||'null'})" class="btn btn-primary">Simpan</button>
+    </div>`;
+  openModal(html);
+}
+async function saveProduct(id){
+  const name=document.getElementById('pName').value, price=document.getElementById('pPrice').value, desc=document.getElementById('pDesc').value;
+  if(!name||!price)return toast('Nama dan harga wajib diisi','error');
+  try{
+    if(id) await api('/api/products/'+id,{method:'PUT',body:JSON.stringify({name,price,description:desc})});
+    else await api('/api/products',{method:'POST',body:JSON.stringify({name,price,description:desc})});
+    closeModal(); await loadProducts(); toast('Produk disimpan','success');
+  }catch(e){toast(e.message,'error')}
+}
+async function deleteProduct(id){
+  if(!confirm('Hapus produk ini?'))return;
+  try{await api('/api/products/'+id,{method:'DELETE'});await loadProducts();toast('Terhapus','success')}catch(e){toast(e.message,'error')}
 }
 
 // Bot & Poll

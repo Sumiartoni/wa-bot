@@ -131,6 +131,28 @@ app.post('/api/labels', authMiddleware, (req, res) => {
   res.json({ success: true, labels: db.getLabels() });
 });
 
+// ======================== PRODUCTS ========================
+app.get('/api/products', authMiddleware, (req, res) => res.json(db.getProducts()));
+
+app.post('/api/products', authMiddleware, (req, res) => {
+  const { name, price, description } = req.body;
+  if (!name || !price) return res.status(400).json({ error: 'Nama dan harga produk wajib diisi' });
+  db.createProduct(name, price, description);
+  res.json({ success: true });
+});
+
+app.put('/api/products/:id', authMiddleware, (req, res) => {
+  const { name, price, description } = req.body;
+  if (!name || !price) return res.status(400).json({ error: 'Nama dan harga produk wajib diisi' });
+  db.updateProduct(parseInt(req.params.id), name, price, description);
+  res.json({ success: true });
+});
+
+app.delete('/api/products/:id', authMiddleware, (req, res) => {
+  db.deleteProduct(parseInt(req.params.id));
+  res.json({ success: true });
+});
+
 // ======================== UPLOAD ========================
 app.post('/api/upload-qris', authMiddleware, upload.single('qris_image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Tidak ada file yang diunggah' });

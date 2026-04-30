@@ -87,6 +87,14 @@ db.exec(`
     FOREIGN KEY (agent_id) REFERENCES agents(id)
   );
 
+  CREATE TABLE IF NOT EXISTS products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    price TEXT NOT NULL,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -331,6 +339,22 @@ function deleteChatNote(id) {
 }
 
 // ========================
+// Products
+// ========================
+function getProducts() {
+  return db.prepare('SELECT * FROM products ORDER BY name').all();
+}
+function createProduct(name, price, description) {
+  return db.prepare('INSERT INTO products (name, price, description) VALUES (?, ?, ?)').run(name, price, description || '');
+}
+function updateProduct(id, name, price, description) {
+  return db.prepare('UPDATE products SET name=?, price=?, description=? WHERE id=?').run(name, price, description || '', id);
+}
+function deleteProduct(id) {
+  return db.prepare('DELETE FROM products WHERE id=?').run(id);
+}
+
+// ========================
 // Settings
 // ========================
 function getSetting(key) {
@@ -395,6 +419,7 @@ module.exports = {
   getQuickReplies, createQuickReply, updateQuickReply, deleteQuickReply,
   getLabels, createLabel, deleteLabel, getChatLabels, addChatLabel, removeChatLabel,
   getChatNotes, addChatNote, deleteChatNote,
+  getProducts, createProduct, updateProduct, deleteProduct,
   getSetting, setSetting, getAllSettings,
   getStats, getMessageStats, getAgentStats
 };
