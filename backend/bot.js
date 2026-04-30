@@ -117,7 +117,11 @@ async function handleMessage(msg) {
     if (sendQris) {
       const qrisUrl = db.getSetting('qris_url');
       if (qrisUrl) {
-        await sock.sendMessage(jid, { image: { url: qrisUrl }, caption: 'Silakan scan QRIS di atas untuk melakukan pembayaran. 🙏' });
+        let finalUrl = qrisUrl;
+        if (qrisUrl.startsWith('/uploads/')) {
+          finalUrl = path.join(__dirname, '..', 'data', qrisUrl);
+        }
+        await sock.sendMessage(jid, { image: { url: finalUrl }, caption: 'Silakan scan QRIS di atas untuk melakukan pembayaran. 🙏' });
         db.saveMessage(jid, 'outgoing', '[Mengirim Gambar QRIS]', 'image', true);
         emitEvent('message', { jid, name: 'Bot', content: '[Mengirim Gambar QRIS]', direction: 'outgoing', isAi: true, timestamp: new Date().toISOString() });
       }

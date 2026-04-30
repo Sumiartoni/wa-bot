@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const EventEmitter = require('events');
 const { authMiddleware, adminOnly, verifyCredentials, generateToken } = require('./auth');
 const db = require('./database');
@@ -15,6 +17,18 @@ bot.setEventEmitter(eventEmitter);
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
+
+// Create uploads directory and serve it
+const UPLOADS_DIR = path.join(__dirname, '..', 'data', 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+app.use('/uploads', express.static(UPLOADS_DIR));
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, UPLOADS_DIR),
+    filename: (req, file, cb) => cb(null, 'qris' + path.extname(file.originalname))
+  })
+});
 
 // ======================== AUTH ========================
 app.post('/api/auth/login', (req, res) => {
@@ -111,10 +125,17 @@ app.put('/api/chats/:jid/ai', authMiddleware, (req, res) => {
 // ======================== LABELS ========================
 app.get('/api/labels', authMiddleware, (req, res) => res.json(db.getLabels()));
 
-app.post('/api/labels', authMiddleware, adminOnly, (req, res) => {
+app.post('/api/labels', authMiddleware, (req, res) => {
   const { name, color } = req.body;
-  db.createLabel(name, color || '#6366f1');
+  db.createLabel(name, color);
   res.json({ success: true, labels: db.getLabels() });
+});
+
+// ======================== UPLOAD ========================
+app.post('/api/upload-qris', authMiddleware, upload.single('qris_image'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Tidak ada file yang diunggah' });
+  const relativeUrl = '/uploads/' + req.file.filename;
+  res.json({ success: true, url: relativeUrl });
 });
 
 app.delete('/api/labels/:id', authMiddleware, adminOnly, (req, res) => {

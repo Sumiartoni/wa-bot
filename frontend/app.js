@@ -153,6 +153,21 @@ function updateAIToggle(on){const b=document.getElementById('aiToggle');b.classN
 async function toggleAI(){const b=document.getElementById('aiToggle');const v=b.dataset.on!=='true';await api('/api/settings',{method:'PUT',body:JSON.stringify({global_ai_enabled:String(v)})});updateAIToggle(v)}
 async function saveSettings(){const d={ai_provider:aiProvider,ai_model:document.getElementById('sModel').value,ai_system_prompt:document.getElementById('sPrompt').value,qris_url:document.getElementById('sQrisUrl').value};const g=document.getElementById('sGroqKey').value,o=document.getElementById('sOpenrouterKey').value,c=document.getElementById('sChatgptToken').value;if(g)d.groq_api_key=g;if(o)d.openrouter_api_key=o;if(c)d.chatgpt_access_token=c;await api('/api/settings',{method:'PUT',body:JSON.stringify(d)});toast('Settings disimpan!','success')}
 
+async function uploadQris(){
+  const fileInput=document.getElementById('sQrisFile');
+  if(!fileInput.files.length)return;
+  const formData=new FormData();
+  formData.append('qris_image',fileInput.files[0]);
+  try{
+    toast('Mengunggah gambar...','info');
+    const res=await fetch(API+'/api/upload-qris',{method:'POST',headers:{'Authorization':'Bearer '+token},body:formData});
+    const data=await res.json();
+    if(data.success){document.getElementById('sQrisUrl').value=data.url;toast('Gambar QRIS berhasil diunggah! Jangan lupa klik Simpan Settings.','success');}
+    else{toast(data.error||'Gagal unggah','error');}
+  }catch(e){toast('Gagal unggah gambar','error');}
+  fileInput.value='';
+}
+
 // Bot & Poll
 async function startBot(){const b=document.getElementById('btnStart');b.disabled=true;try{const r=await api('/api/bot/start',{method:'POST'});toast(r.message||'Bot dimulai','success');setTimeout(pollStatus,1500)}catch(e){toast(e.message,'error')}finally{b.disabled=false}}
 async function logoutBot(){if(!confirm('Logout WhatsApp?'))return;try{await api('/api/bot/logout',{method:'POST'});toast('Logout berhasil','success');pollStatus()}catch(e){toast(e.message,'error')}}

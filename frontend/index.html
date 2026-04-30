@@ -128,7 +128,14 @@
       </div>
       <div class="card" style="padding:20px;margin-bottom:14px">
         <h3 style="font-weight:600;font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:8px"><i data-lucide="image" style="width:16px;height:16px;color:var(--success)"></i>Pembayaran & Media</h3>
-        <div><label style="font-size:11px;color:var(--text3)">Link Gambar QRIS Pembayaran (Bisa dikirim otomatis oleh AI)</label><input id="sQrisUrl" type="url" placeholder="https://i.imgur.com/contoh.jpg" style="margin-bottom:10px"></div>
+        <div>
+          <label style="font-size:11px;color:var(--text3)">Gambar QRIS Pembayaran (Bisa dikirim otomatis oleh AI dengan trigger [KIRIM_QRIS])</label>
+          <div style="display:flex;gap:8px;margin-bottom:10px;margin-top:4px">
+            <input id="sQrisUrl" type="text" placeholder="/uploads/qris.jpg atau https://..." style="flex:1">
+            <input type="file" id="sQrisFile" accept="image/*" style="display:none" onchange="uploadQris()">
+            <button onclick="document.getElementById('sQrisFile').click()" class="btn btn-ghost" style="padding:9px 14px"><i data-lucide="upload" style="width:14px;height:14px"></i> Upload</button>
+          </div>
+        </div>
       </div>
       <div class="card" style="padding:20px;margin-bottom:14px">
         <h3 style="font-weight:600;font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:8px"><i data-lucide="tag" style="width:16px;height:16px;color:var(--accent)"></i>Labels</h3>
