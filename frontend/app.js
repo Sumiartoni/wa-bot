@@ -161,10 +161,14 @@ async function uploadQris(){
   try{
     toast('Mengunggah gambar...','info');
     const res=await fetch(API+'/api/upload-qris',{method:'POST',headers:{'Authorization':'Bearer '+token},body:formData});
+    if(!res.ok){
+      if(res.status===413) throw new Error('Ukuran gambar terlalu besar (Maks 50MB)');
+      throw new Error('Server error: '+res.status);
+    }
     const data=await res.json();
     if(data.success){document.getElementById('sQrisUrl').value=data.url;toast('Gambar QRIS berhasil diunggah! Jangan lupa klik Simpan Settings.','success');}
     else{toast(data.error||'Gagal unggah','error');}
-  }catch(e){toast('Gagal unggah gambar','error');}
+  }catch(e){toast('Gagal unggah gambar: '+e.message,'error');}
   fileInput.value='';
 }
 
