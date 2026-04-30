@@ -16,11 +16,11 @@ function getGroqClient() {
   return groqClient;
 }
 
-function getOpenAIClient() {
-  const apiKey = db.getSetting('openai_api_key') || process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error('OpenAI API Key belum diset');
+function getOpenRouterClient() {
+  const apiKey = db.getSetting('openrouter_api_key') || process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error('OpenRouter API Key belum diset');
   if (!openaiClient || openaiClient._apiKey !== apiKey) {
-    openaiClient = new OpenAI({ apiKey });
+    openaiClient = new OpenAI({ apiKey, baseURL: 'https://openrouter.ai/api/v1' });
     openaiClient._apiKey = apiKey;
   }
   return openaiClient;
@@ -28,7 +28,7 @@ function getOpenAIClient() {
 
 const DEFAULT_MODELS = {
   groq: 'llama-3.3-70b-versatile',
-  openai: 'gpt-4o-mini',
+  openrouter: 'google/gemini-2.0-flash-001',
   chatgpt: 'auto'
 };
 
@@ -134,10 +134,10 @@ async function generateResponse(userMessage, chatHistory = [], systemPrompt = ''
       return await chatgptFree(messages, activeModel);
     }
 
-    // GROQ or OpenAI (official)
+    // GROQ or OpenRouter (official)
     let client;
-    if (activeProvider === 'openai') {
-      client = getOpenAIClient();
+    if (activeProvider === 'openrouter') {
+      client = getOpenRouterClient();
     } else {
       client = getGroqClient();
     }

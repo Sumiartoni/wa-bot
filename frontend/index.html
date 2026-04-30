@@ -109,16 +109,16 @@
         <h3 style="font-weight:600;font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:8px"><i data-lucide="cpu" style="width:16px;height:16px;color:var(--accent)"></i>AI Provider</h3>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
           <button onclick="setAIProvider('groq')" id="pGroq" class="card" style="padding:14px;text-align:center;cursor:pointer"><i data-lucide="zap" style="width:20px;height:20px;color:var(--success);margin:0 auto 6px"></i><p style="font-size:12px;font-weight:600">GROQ</p><p style="font-size:10px;color:var(--text3);margin-top:2px">Gratis</p></button>
-          <button onclick="setAIProvider('openai')" id="pOpenai" class="card" style="padding:14px;text-align:center;cursor:pointer"><i data-lucide="brain" style="width:20px;height:20px;color:var(--primary);margin:0 auto 6px"></i><p style="font-size:12px;font-weight:600">OpenAI</p><p style="font-size:10px;color:var(--text3);margin-top:2px">API Key</p></button>
+          <button onclick="setAIProvider('openrouter')" id="pOpenrouter" class="card" style="padding:14px;text-align:center;cursor:pointer"><i data-lucide="brain" style="width:20px;height:20px;color:var(--primary);margin:0 auto 6px"></i><p style="font-size:12px;font-weight:600">OpenRouter</p><p style="font-size:10px;color:var(--text3);margin-top:2px">API Key</p></button>
           <button onclick="setAIProvider('chatgpt')" id="pChatgpt" class="card" style="padding:14px;text-align:center;cursor:pointer"><i data-lucide="message-square" style="width:20px;height:20px;color:var(--cyan);margin:0 auto 6px"></i><p style="font-size:12px;font-weight:600">ChatGPT</p><p style="font-size:10px;color:var(--text3);margin-top:2px">Token</p></button>
         </div>
-        <input id="sModel" placeholder="Model: auto / llama-3.3-70b-versatile / gpt-4o-mini" style="margin-bottom:10px">
+        <input id="sModel" placeholder="Model: llama-3.3-70b-versatile / google/gemini-2.0-flash-001" style="margin-bottom:10px">
         <textarea id="sPrompt" rows="2" placeholder="System prompt..."></textarea>
       </div>
       <div class="card" style="padding:20px;margin-bottom:14px">
         <h3 style="font-weight:600;font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:8px"><i data-lucide="key" style="width:16px;height:16px;color:var(--warning)"></i>API Keys</h3>
         <div style="margin-bottom:10px"><label style="font-size:11px;color:var(--text3)">GROQ API Key</label><input id="sGroqKey" type="password" placeholder="gsk_..."></div>
-        <div style="margin-bottom:10px"><label style="font-size:11px;color:var(--text3)">OpenAI API Key</label><input id="sOpenaiKey" type="password" placeholder="sk-..."></div>
+        <div style="margin-bottom:10px"><label style="font-size:11px;color:var(--text3)">OpenRouter API Key</label><input id="sOpenrouterKey" type="password" placeholder="sk-or-..."></div>
         <div><label style="font-size:11px;color:var(--text3)">ChatGPT Access Token</label><textarea id="sChatgptToken" rows="2" style="font-family:monospace;font-size:11px" placeholder="eyJ..."></textarea></div>
       </div>
       <div class="card" style="padding:20px;margin-bottom:14px">
