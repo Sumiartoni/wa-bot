@@ -54,6 +54,25 @@ docker compose up --build
 
 The app stores SQLite, WhatsApp session files, and backups under `./data`, which is ignored by Git. The Docker image builds the frontend into `public/` and serves it from the same backend container.
 
+## Render Demo Deploy
+
+This repository now includes [render.yaml](./render.yaml) for a single free Render web service using the existing `Dockerfile`.
+
+Recommended usage for Render:
+
+1. Push this repository to GitHub.
+2. In Render, create a new Blueprint and point it to this repo.
+3. Let Render create the `wa-bot` web service from `render.yaml`.
+4. After the first deploy, open the service's Environment page and copy the generated `ADMIN_PASSWORD` value.
+5. Log in with `ADMIN_EMAIL=admin@example.com` and the generated password.
+
+Important limitations on Render free:
+
+- This is suitable for demo/testing, not stable production.
+- Render free web services spin down on idle, so Socket.IO and the WhatsApp runtime are not reliable for always-on use.
+- The service filesystem is ephemeral, so SQLite data, backups, media, and WhatsApp session files can be lost on restart, redeploy, or spin-down.
+- The app now falls back to Render's `RENDER_EXTERNAL_URL` for `APP_ORIGIN`, so same-origin browser access works without manually setting `APP_ORIGIN` on Render.
+
 ## Auth and CSRF Contract
 
 - `POST /api/auth/login` with `{ "email": "...", "password": "..." }` returns `{ token, csrfToken, user }` and also sets an `httpOnly` `auth_token` cookie.

@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: wa-bot
+    runtime: docker
+    plan: free
+    branch: main
+    autoDeployTrigger: commit
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        value: file:/app/data/sqlite/jokitugasku.db
+      - key: DATA_DIR
+        value: /app/data
+      - key: WHATSAPP_SESSION_DIR
+        value: /app/data/whatsapp-sessions
+      - key: MEDIA_DIR
+        value: /app/data/media
+      - key: BACKUP_DIR
+        value: /app/data/backups
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: ADMIN_EMAIL
+        value: admin@example.com
+      - key: ADMIN_NAME
+        value: Render Admin
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: JWT_SECRET
+        generateValue: true

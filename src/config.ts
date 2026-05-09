@@ -6,6 +6,7 @@ import { z } from "zod";
 dotenv.config();
 
 const defaultDataDir = path.resolve(process.cwd(), "data");
+const defaultAppOrigin = process.env.RENDER_EXTERNAL_URL || "http://localhost:5173";
 
 const defaultJwtSecret = "dev-only-change-me";
 const defaultAdminPassword = "ChangeMe123!";
@@ -13,7 +14,7 @@ const defaultAdminPassword = "ChangeMe123!";
 const envSchema = z.object({
   NODE_ENV: z.string().default("development"),
   PORT: z.coerce.number().default(3000),
-  APP_ORIGIN: z.string().default("http://localhost:5173"),
+  APP_ORIGIN: z.string().default(defaultAppOrigin),
   DATABASE_URL: z.string().default(`file:${path.join(defaultDataDir, "sqlite", "jokitugasku.db")}`),
   JWT_SECRET: z.string().default(defaultJwtSecret),
   JWT_EXPIRES_IN: z.string().default("8h"),
