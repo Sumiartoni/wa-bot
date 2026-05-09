@@ -23,4 +23,4 @@ COPY --from=build /app/prisma ./prisma
 COPY .env.example ./
 RUN mkdir -p /app/data/sqlite /app/data/whatsapp-sessions /app/data/backups
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma db push && npm run prisma:seed && npm start"]
+CMD ["sh", "-c", "npx prisma db push && node dist/prisma/seed.js && npm start"]
