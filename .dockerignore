@@ -1,0 +1,9 @@
+node_modules
+dist
+data
+prisma/data
+.env
+.git
+.opencode
+.sisyphus
+npm-debug.log*

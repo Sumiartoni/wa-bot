@@ -1,0 +1,288 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  name         String
+  role         String    @default("agent")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  lastActiveAt DateTime? @map("last_active_at")
+
+  messages  Message[]
+  templates Template[]
+  macros    AutomationMacro[]
+  orders    Order[]
+  audits    AuditLog[]
+  sessions  AdminSession[]
+
+  @@map("users")
+}
+
+model AdminSession {
+  id         Int      @id @default(autoincrement())
+  sessionId  String   @unique @map("session_id")
+  userId     Int      @map("user_id")
+  revokedAt  DateTime? @map("revoked_at")
+  expiresAt  DateTime  @map("expires_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("admin_sessions")
+}
+
+model WhatsappSession {
+  id              Int       @id @default(autoincrement())
+  sessionName     String    @unique @map("session_name")
+  filePath        String    @map("file_path")
+  connected       Boolean   @default(false)
+  lastQr          String?   @map("last_qr")
+  encryptionEnabled Boolean @default(false) @map("encryption_enabled")
+  revokedAt       DateTime? @map("revoked_at")
+  rotatedAt       DateTime? @map("rotated_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  lastConnectedAt DateTime? @map("last_connected_at")
+
+  @@map("whatsapp_sessions")
+}
+
+model Contact {
+  id        Int      @id @default(autoincrement())
+  waId      String   @unique @map("wa_id")
+  name      String
+  phone     String
+  tags      String   @default("")
+  aiEnabled Boolean  @default(false) @map("ai_enabled")
+  optOut    Boolean  @default(false) @map("opt_out")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  conversations Conversation[]
+  orders        Order[]
+
+  @@map("contacts")
+}
+
+model Conversation {
+  id            Int      @id @default(autoincrement())
+  contactId     Int      @map("contact_id")
+  lastMessageAt DateTime @default(now()) @map("last_message_at")
+  unreadCount   Int      @default(0) @map("unread_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  contact  Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([lastMessageAt])
+  @@map("conversations")
+}
+
+model Message {
+  id             Int       @id @default(autoincrement())
+  conversationId Int       @map("conversation_id")
+  waId           String?   @map("wa_id")
+  from           String
+  authorId       Int?      @map("author_id")
+  content        String
+  messageType    String    @default("text") @map("message_type")
+  mediaPath      String?   @map("media_path")
+  mediaMimeType  String?   @map("media_mime_type")
+  mediaFileName  String?   @map("media_file_name")
+  mediaSizeBytes Int?      @map("media_size_bytes")
+  generatedBy    String    @default("manual") @map("generated_by")
+  aiModel        String?   @map("ai_model")
+  aiConfidence   Float?    @map("ai_confidence")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  sentAt         DateTime? @map("sent_at")
+  deliveredAt    DateTime? @map("delivered_at")
+  readAt         DateTime? @map("read_at")
+  status         String    @default("delivered")
+  attempts       Int       @default(0)
+  nextAttemptAt  DateTime? @map("next_attempt_at")
+  lastAttemptAt  DateTime? @map("last_attempt_at")
+  failureReason  String?   @map("failure_reason")
+  queuedAt       DateTime? @map("queued_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  author       User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([status, nextAttemptAt])
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+model Template {
+  id        Int      @id @default(autoincrement())
+  name      String
+  body      String
+  tags      String   @default("")
+  createdBy Int      @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  creator User @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@map("templates")
+}
+
+model AutomationMacro {
+  id        Int      @id @default(autoincrement())
+  name      String
+  keywords  String
+  body      String
+  enabled   Boolean  @default(true)
+  tags      String   @default("")
+  createdBy Int      @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  creator User @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@map("automation_macros")
+}
+
+model KnowledgeBase {
+  id        Int      @id @default(autoincrement())
+  title     String
+  snippet   String
+  content   String
+  tags      String   @default("")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("knowledge_base")
+}
+
+model Order {
+  id         Int      @id @default(autoincrement())
+  contactId  Int      @map("contact_id")
+  orderRef   String   @unique @map("order_ref")
+  status     String   @default("draft")
+  total      Int?
+  attributes String
+  createdBy  Int      @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  creator User    @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  webhookDeliveries WebhookDelivery[]
+
+  @@map("orders")
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  action     String
+  actorId    Int?     @map("actor_id")
+  targetType String   @map("target_type")
+  targetId   Int?     @map("target_id")
+  meta       String
+  hash       String?
+  previousHash String? @map("previous_hash")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedBy Int?     @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("app_settings")
+}
+
+model RateLimitPolicy {
+  id            Int      @id @default(autoincrement())
+  scope         String   @unique
+  limit         Int
+  windowSeconds Int      @map("window_seconds")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("rate_limits")
+}
+
+model AiGeneration {
+  id             Int      @id @default(autoincrement())
+  conversationId Int      @map("conversation_id")
+  contactId      Int      @map("contact_id")
+  model          String
+  prompt         String
+  suggestion     String
+  confidence     Float
+  status         String   @default("completed")
+  promptTokens   Int?     @map("prompt_tokens")
+  completionTokens Int?   @map("completion_tokens")
+  totalTokens    Int?     @map("total_tokens")
+  latencyMs      Int?     @map("latency_ms")
+  rateLimitScope String?  @map("rate_limit_scope")
+  providerMeta   String?  @map("provider_meta")
+  createdBy      Int      @map("created_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("ai_generations")
+}
+
+model WebhookEndpoint {
+  id              Int       @id @default(autoincrement())
+  name            String    @unique
+  url             String
+  secret          String?
+  enabled         Boolean   @default(true)
+  maxAttempts     Int       @default(5) @map("max_attempts")
+  backoffSeconds  Int       @default(30) @map("backoff_seconds")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  deliveries WebhookDelivery[]
+
+  @@map("webhook_endpoints")
+}
+
+model WebhookDelivery {
+  id             Int       @id @default(autoincrement())
+  endpointId     Int       @map("endpoint_id")
+  orderId        Int       @map("order_id")
+  event          String
+  status         String    @default("pending")
+  attempts       Int       @default(0)
+  nextAttemptAt  DateTime? @map("next_attempt_at")
+  lastAttemptAt  DateTime? @map("last_attempt_at")
+  responseStatus Int?      @map("response_status")
+  responseBody   String?   @map("response_body")
+  error          String?
+  payload        String
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  order    Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextAttemptAt])
+  @@index([orderId])
+  @@map("webhook_deliveries")
+}
+
+model BackupRun {
+  id        Int      @id @default(autoincrement())
+  filePath  String   @map("file_path")
+  sizeBytes Int      @default(0) @map("size_bytes")
+  status    String
+  createdBy Int?     @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("backup_runs")
+}
