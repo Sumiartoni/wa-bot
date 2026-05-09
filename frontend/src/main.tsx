@@ -36,6 +36,18 @@ type Toast = { type: "ok" | "error"; text: string };
 const storageKey = "wa-admin-auth";
 const pages = ["dashboard", "conversations", "whatsapp", "users", "templates", "kb", "automation", "orders", "audit", "operations"] as const;
 type Page = (typeof pages)[number];
+const pageMeta: Record<Page, { label: string; eyebrow: string; description: string }> = {
+  dashboard: { label: "Dashboard", eyebrow: "Overview", description: "Pantau kesehatan sistem, throughput, dan event terbaru dalam satu layar." },
+  conversations: { label: "Conversations", eyebrow: "Inbox", description: "Baca pesan, susun balasan, dan lihat konteks order tanpa kehilangan fokus." },
+  whatsapp: { label: "WhatsApp", eyebrow: "Runtime", description: "Kelola koneksi, QR, dan arsip sesi WhatsApp secara langsung." },
+  users: { label: "Users", eyebrow: "Access", description: "Atur admin dan agent yang boleh memakai console." },
+  templates: { label: "Templates", eyebrow: "Responses", description: "Simpan template balasan cepat yang konsisten dan mudah dipakai ulang." },
+  kb: { label: "Knowledge Base", eyebrow: "Knowledge", description: "Pusat snippet dan referensi internal untuk membantu jawaban operator." },
+  automation: { label: "Automation", eyebrow: "Macros", description: "Kelola macro otomatis dan kata kunci untuk respons operasional." },
+  orders: { label: "Orders", eyebrow: "Sales", description: "Lacak draft, status, dan payload order dari percakapan yang sedang berjalan." },
+  audit: { label: "Audit", eyebrow: "History", description: "Tinjau jejak tindakan operator dan ekspor catatan bila diperlukan." },
+  operations: { label: "Operations", eyebrow: "Control", description: "Backup, health, webhook, AI, dan kebijakan runtime ada di sini." }
+};
 
 function readStoredAuth(): AuthState | null {
   try {
@@ -113,24 +125,44 @@ function App() {
 
   if (!auth) return <Login onLogin={setAuth} />;
 
+  const currentPage = pageMeta[page];
+
   return (
-    <div className="min-h-screen bg-slate-100 text-ink">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-line bg-slate-950 text-slate-100 lg:block">
-        <div className="border-b border-slate-800 p-5">
-          <div className="text-xs uppercase tracking-[0.25em] text-teal-300">WA Console</div>
-          <div className="mt-2 font-semibold">JokiTugasKu Admin</div>
+    <div className="app-shell">
+      <aside className="sidebar-shell fixed inset-y-0 left-0 hidden w-72 lg:block">
+        <div className="sidebar-brand">
+          <div className="text-[11px] font-bold uppercase tracking-[0.32em] text-teal-300">WA Console</div>
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-white">JokiTugasKu Admin</div>
+          <p className="mt-3 max-w-xs text-sm leading-6 text-slate-400">Workspace privat untuk membaca chat, membalas cepat, dan menjaga alur operasional tetap rapi.</p>
         </div>
-        <nav className="space-y-1 p-3">{pages.map((item) => <button key={item} onClick={() => setPage(item)} className={`nav-item ${page === item ? "nav-active" : ""}`}>{label(item)}</button>)}</nav>
-      </aside>
-      <div className="lg:pl-64">
-        <header className="sticky top-0 z-10 border-b border-line bg-white/95 px-4 py-3 backdrop-blur">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div><div className="text-xs uppercase tracking-[0.2em] text-slate-500">{label(page)}</div><h1 className="text-xl font-semibold">Private support operations</h1></div>
-            <div className="flex flex-wrap items-center gap-2 text-sm"><span className={`status-pill ${socketStatus === "live" ? "bg-teal-50 text-teal-800" : "bg-slate-50 text-slate-600"}`}>socket {socketStatus}</span><span className="status-pill bg-white">{auth.user.email} · {auth.user.role}</span><button className="btn-secondary" onClick={logout}>Log out</button></div>
+        <nav className="space-y-1.5 p-3">{pages.map((item) => <button key={item} onClick={() => setPage(item)} className={`nav-item ${page === item ? "nav-active" : ""}`}><div className="text-sm">{label(item)}</div><div className="mt-1 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">{pageMeta[item].eyebrow}</div></button>)}</nav>
+        <div className="px-4 pb-5 pt-2">
+          <div className="rounded-[28px] border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-teal-300">Current operator</div>
+            <div className="mt-3 font-semibold text-white">{auth.user.name || auth.user.email}</div>
+            <div className="mt-1 text-slate-400">{auth.user.role} • {auth.user.email}</div>
           </div>
-          <div className="mt-3 flex gap-2 overflow-x-auto lg:hidden">{pages.map((item) => <button key={item} onClick={() => setPage(item)} className={`mobile-tab ${page === item ? "mobile-active" : ""}`}>{label(item)}</button>)}</div>
+        </div>
+      </aside>
+      <div className="lg:pl-72">
+        <header className="sticky top-0 z-10 border-b border-white/65 bg-white/72 px-4 py-4 backdrop-blur xl:px-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-[0.28em] text-teal-700">{currentPage.eyebrow}</div>
+              <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">{currentPage.label}</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{currentPage.description}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className={`status-pill ${socketStatus === "live" ? "border-teal-200 bg-teal-50 text-teal-900" : "border-slate-200 bg-slate-100 text-slate-600"}`}>socket {socketStatus}</span>
+              <span className="status-pill">{auth.user.role}</span>
+              <span className="status-pill">{auth.user.email}</span>
+              <button className="btn-secondary" onClick={logout}>Log out</button>
+            </div>
+          </div>
+          {events.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{events.slice(0, 4).map((event, index) => <span key={`${event}-${index}`} className="status-pill bg-slate-50 text-slate-600">{event}</span>)}</div>}
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1 lg:hidden">{pages.map((item) => <button key={item} onClick={() => setPage(item)} className={`mobile-tab ${page === item ? "mobile-active" : ""}`}>{label(item)}</button>)}</div>
         </header>
-        <main className="p-4">
+        <main className="px-4 py-5 xl:px-6">
           {page === "dashboard" && <Dashboard auth={auth} events={events} />}
           {page === "conversations" && <Conversations auth={auth} events={events} />}
           {page === "whatsapp" && <Whatsapp auth={auth} />}
@@ -166,7 +198,43 @@ function Login({ onLogin }: { onLogin: (auth: AuthState) => void }) {
       setLoading(false);
     }
   }
-  return <div className="grid min-h-screen place-items-center bg-slate-950 p-4 text-slate-100"><form onSubmit={submit} className="w-full max-w-sm border border-slate-800 bg-slate-900 p-6 shadow-2xl"><div className="text-xs uppercase tracking-[0.3em] text-teal-300">Admin only</div><h1 className="mt-2 text-2xl font-semibold">JokiTugasKu WhatsApp Console</h1><p className="mt-2 text-sm text-slate-400">Use the seeded admin credentials or the values configured in `.env`.</p><div className="mt-6 space-y-4"><label className="field-label">Email<input className="input-dark" value={email} onChange={(event) => setEmail(event.target.value)} type="email" /></label><label className="field-label">Password<input className="input-dark" value={password} onChange={(event) => setPassword(event.target.value)} type="password" /></label><ApiError message={error} /><button className="btn-primary w-full" disabled={loading}>{loading ? "Checking..." : "Log in"}</button></div></form></div>;
+  return (
+    <div className="login-shell">
+      <div className="login-card">
+        <div className="login-side">
+          <div className="text-[11px] font-bold uppercase tracking-[0.34em] text-teal-300">Private Workspace</div>
+          <h1 className="mt-5 max-w-md text-4xl font-extrabold leading-tight text-white">Console WhatsApp yang tenang, rapi, dan mudah dipindai.</h1>
+          <p className="mt-4 max-w-lg text-sm leading-7 text-slate-300">Semua area utama sudah dipusatkan di satu tempat: inbox, order draft, macro, backup, webhook, dan panel runtime. Fokusnya operasional cepat tanpa layar yang padat dan melelahkan.</p>
+          <div className="mt-8 grid gap-3 md:grid-cols-3">
+            <div className="soft-card border-white/10 bg-white/5 text-slate-100">
+              <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-teal-300">Realtime</div>
+              <div className="mt-2 text-sm text-slate-300">Socket, queue, dan event penting bisa dipantau langsung.</div>
+            </div>
+            <div className="soft-card border-white/10 bg-white/5 text-slate-100">
+              <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-teal-300">Context</div>
+              <div className="mt-2 text-sm text-slate-300">Percakapan, order, suggestion, dan knowledge berada di satu alur.</div>
+            </div>
+            <div className="soft-card border-white/10 bg-white/5 text-slate-100">
+              <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-teal-300">Ops</div>
+              <div className="mt-2 text-sm text-slate-300">Backup, kebijakan runtime, dan health check tetap mudah dibaca.</div>
+            </div>
+          </div>
+        </div>
+        <form onSubmit={submit} className="login-form">
+          <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-teal-300">Admin only</div>
+          <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-white">Masuk ke workspace</h2>
+          <p className="mt-3 max-w-md text-sm leading-6 text-slate-400">Gunakan akun admin seed atau kredensial yang Anda set di environment. Default email tetap `admin@example.com`.</p>
+          <div className="mt-8 space-y-4">
+            <label className="field-label">Email<input className="input-dark" value={email} onChange={(event) => setEmail(event.target.value)} type="email" /></label>
+            <label className="field-label">Password<input className="input-dark" value={password} onChange={(event) => setPassword(event.target.value)} type="password" /></label>
+            <ApiError message={error} />
+            <button className="btn-primary w-full" disabled={loading}>{loading ? "Checking..." : "Log in"}</button>
+            <div className="surface-note border-white/10 bg-white/5 text-slate-300">Setelah login, simpan fokus di area yang relevan. Sidebar dan tab mobile sudah diurutkan agar operasional inti lebih cepat ditemukan.</div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 }
 
 function Dashboard({ auth, events }: { auth: AuthState; events: string[] }) {
@@ -174,7 +242,48 @@ function Dashboard({ auth, events }: { auth: AuthState; events: string[] }) {
   const { data: metrics } = useApi<Metrics>(auth, "/metrics", events);
   const { data: settings } = useApi<SettingsResponse>(auth, "/settings/policies");
   const policies = settings?.policies;
-  return <div className="grid gap-4 xl:grid-cols-3"><Panel title="System counts" className="xl:col-span-2"><MetricGrid values={status?.counts ?? {}} /></Panel><Panel title="Live status"><KeyValue rows={{ database: status?.database ?? "loading", whatsapp: status?.whatsapp.status ?? "loading", openOrders: metrics?.openOrders ?? "-", aiGenerations: metrics?.aiCount ?? "-", latestBackup: metrics?.backups.latest ? `${metrics.backups.latest.status} · ${formatBytes(metrics.backups.latest.sizeBytes)} · ${formatDate(metrics.backups.latest.createdAt)}` : "-", webhookConfigured: settings?.webhookConfigured ? "yes" : "no", defaultModel: policies?.defaultModel ?? "-", aiConfidenceThreshold: policies?.aiConfidenceThreshold ?? "-", queueRetry: policies ? `${policies.messageQueueMaxAttempts} attempts / ${policies.messageQueueRetrySeconds}s` : "-" }} /></Panel><Panel title="Throughput" className="xl:col-span-2"><MetricGrid values={{ messagesLastHour: metrics?.throughput.messagesLastHour ?? 0, messagesLast24h: metrics?.throughput.messagesLast24h ?? 0, auditEvents24h: metrics?.throughput.auditEventsLast24h ?? 0, apiRequests5m: metrics?.throughput.api.requests ?? 0, apiErrors5m: metrics?.throughput.api.errorCount ?? 0, apiP95ms: metrics?.throughput.api.p95ResponseMs ?? 0 }} /></Panel><Panel title="Recent realtime events"><MiniSection title="Socket feed" rows={events.length ? events : ["No realtime events yet"]} /></Panel></div>;
+  return (
+    <div className="space-y-4">
+      <section className="hero-shell">
+        <div className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-[0.28em] text-teal-700">Workspace snapshot</div>
+            <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-950">Semua sinyal operasional penting diringkas di awal.</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">Gunakan layar ini untuk mengecek apakah inbox, queue, audit, dan koneksi WhatsApp sedang sehat sebelum Anda pindah ke panel yang lebih detail.</p>
+            <div className="mt-6 grid gap-3 md:grid-cols-3">
+              <div className="metric-card">
+                <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Open orders</div>
+                <div className="mt-2 text-3xl font-extrabold text-slate-950">{metrics?.openOrders ?? 0}</div>
+              </div>
+              <div className="metric-card">
+                <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Messages / 24h</div>
+                <div className="mt-2 text-3xl font-extrabold text-slate-950">{metrics?.throughput.messagesLast24h ?? 0}</div>
+              </div>
+              <div className="metric-card">
+                <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">API requests / 5m</div>
+                <div className="mt-2 text-3xl font-extrabold text-slate-950">{metrics?.throughput.api.requests ?? 0}</div>
+              </div>
+            </div>
+          </div>
+          <div className="soft-card">
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Quick status</div>
+            <div className="mt-4 space-y-2 text-sm text-slate-700">
+              <div className="flex items-center justify-between gap-3"><span>Database</span><strong>{status?.database ?? "loading"}</strong></div>
+              <div className="flex items-center justify-between gap-3"><span>WhatsApp</span><strong>{status?.whatsapp.status ?? "loading"}</strong></div>
+              <div className="flex items-center justify-between gap-3"><span>Webhook</span><strong>{settings?.webhookConfigured ? "configured" : "off"}</strong></div>
+              <div className="flex items-center justify-between gap-3"><span>Backup latest</span><strong>{metrics?.backups.latest ? formatDate(metrics.backups.latest.createdAt) : "-"}</strong></div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <div className="grid gap-4 xl:grid-cols-3">
+        <Panel title="System counts" subtitle="Volume dasar sistem untuk inbox, user, message, audit, dan backup."><MetricGrid values={status?.counts ?? {}} /></Panel>
+        <Panel title="Live status" subtitle="Baca konfigurasi dan status runtime tanpa berpindah layar."><KeyValue rows={{ database: status?.database ?? "loading", whatsapp: status?.whatsapp.status ?? "loading", openOrders: metrics?.openOrders ?? "-", aiGenerations: metrics?.aiCount ?? "-", latestBackup: metrics?.backups.latest ? `${metrics.backups.latest.status} · ${formatBytes(metrics.backups.latest.sizeBytes)} · ${formatDate(metrics.backups.latest.createdAt)}` : "-", webhookConfigured: settings?.webhookConfigured ? "yes" : "no", defaultModel: policies?.defaultModel ?? "-", aiConfidenceThreshold: policies?.aiConfidenceThreshold ?? "-", queueRetry: policies ? `${policies.messageQueueMaxAttempts} attempts / ${policies.messageQueueRetrySeconds}s` : "-" }} /></Panel>
+        <Panel title="Realtime feed" subtitle="Event terbaru yang masuk dari socket dan worker."><MiniSection title="Socket feed" rows={events.length ? events : ["No realtime events yet"]} /></Panel>
+      </div>
+      <Panel title="Throughput" subtitle="Gunakan angka ini untuk melihat beban API dan ritme kerja terbaru."><MetricGrid values={{ messagesLastHour: metrics?.throughput.messagesLastHour ?? 0, messagesLast24h: metrics?.throughput.messagesLast24h ?? 0, auditEvents24h: metrics?.throughput.auditEventsLast24h ?? 0, apiRequests5m: metrics?.throughput.api.requests ?? 0, apiErrors5m: metrics?.throughput.api.errorCount ?? 0, apiP95ms: metrics?.throughput.api.p95ResponseMs ?? 0 }} /></Panel>
+    </div>
+  );
 }
 
 function Conversations({ auth, events }: { auth: AuthState; events: string[] }) {
@@ -185,7 +294,27 @@ function Conversations({ auth, events }: { auth: AuthState; events: string[] }) 
   const conversations = data?.conversations ?? [];
   React.useEffect(() => { if (!selectedId && conversations[0]) setSelectedId(conversations[0].id); }, [conversations, selectedId]);
   function setFilter(key: keyof typeof filters, value: string) { setFilters((current) => ({ ...current, [key]: value })); }
-  return <div className="grid gap-4 xl:grid-cols-[390px_1fr]"><Panel title="Inbox filters"><div className="grid gap-2"><input className="input" placeholder="Search name, phone, message, order" value={filters.search} onChange={(event) => setFilter("search", event.target.value)} /><input className="input" placeholder="Contact tag" value={filters.tag} onChange={(event) => setFilter("tag", event.target.value)} /><input className="input" placeholder="Order ID" value={filters.orderId} onChange={(event) => setFilter("orderId", event.target.value)} /><input className="input" placeholder="Order reference" value={filters.orderRef} onChange={(event) => setFilter("orderRef", event.target.value)} /><select className="input" value={filters.status} onChange={(event) => setFilter("status", event.target.value)}><option value="">Any message queue status</option>{["queued", "retrying", "sending", "failed", "sent", "delivered"].map((status) => <option key={status} value={status}>{status}</option>)}</select><button className="btn-secondary" onClick={() => setFilters({ search: "", tag: "", orderId: "", orderRef: "", status: "" })}>Clear filters</button></div><div className="mt-4 space-y-2">{conversations.map((conversation) => <button key={conversation.id} onClick={() => setSelectedId(conversation.id)} className={`list-card w-full text-left ${selectedId === conversation.id ? "ring-2 ring-teal-600" : ""}`}><div className="flex justify-between gap-2"><strong>{conversation.contact.name}</strong><span className="text-xs text-slate-500">{formatDate(conversation.lastMessageAt)}</span></div><div className="mt-1 text-sm text-slate-600">{conversation.messages[0]?.content ?? "No messages"}</div><div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500"><span>{conversation.contact.phone}</span>{conversation.unreadCount > 0 && <span className="font-semibold text-warn">{conversation.unreadCount} unread</span>}{conversation.contact.tags && <span>{conversation.contact.tags}</span>}</div></button>)}</div></Panel>{selectedId ? <ConversationDetail auth={auth} id={selectedId} onChanged={reload} events={events} /> : <Panel title="Conversation">No conversation selected.</Panel>}</div>;
+  return (
+    <div className="grid gap-4 xl:grid-cols-[400px_1fr]">
+      <Panel title="Inbox filters" subtitle="Saring percakapan dengan cepat sebelum masuk ke detail.">
+        <div className="grid gap-2">
+          <input className="input" placeholder="Search name, phone, message, order" value={filters.search} onChange={(event) => setFilter("search", event.target.value)} />
+          <input className="input" placeholder="Contact tag" value={filters.tag} onChange={(event) => setFilter("tag", event.target.value)} />
+          <input className="input" placeholder="Order ID" value={filters.orderId} onChange={(event) => setFilter("orderId", event.target.value)} />
+          <input className="input" placeholder="Order reference" value={filters.orderRef} onChange={(event) => setFilter("orderRef", event.target.value)} />
+          <select className="input" value={filters.status} onChange={(event) => setFilter("status", event.target.value)}>
+            <option value="">Any message queue status</option>
+            {["queued", "retrying", "sending", "failed", "sent", "delivered"].map((status) => <option key={status} value={status}>{status}</option>)}
+          </select>
+          <button className="btn-secondary" onClick={() => setFilters({ search: "", tag: "", orderId: "", orderRef: "", status: "" })}>Clear filters</button>
+        </div>
+        <div className="mt-5 space-y-3">
+          {conversations.length ? conversations.map((conversation) => <button key={conversation.id} onClick={() => setSelectedId(conversation.id)} className={`list-card w-full text-left ${selectedId === conversation.id ? "ring-2 ring-teal-600 ring-offset-2 ring-offset-slate-100" : ""}`}><div className="flex items-start justify-between gap-3"><div><div className="text-base font-extrabold tracking-tight text-slate-950">{conversation.contact.name}</div><div className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{conversation.contact.phone}</div></div><span className="text-xs text-slate-500">{formatDate(conversation.lastMessageAt)}</span></div><div className="mt-3 text-sm leading-6 text-slate-600">{conversation.messages[0]?.content ?? "No messages"}</div><div className="mt-4 flex flex-wrap gap-2 text-xs">{conversation.unreadCount > 0 && <span className="status-pill border-amber-200 bg-amber-50 text-amber-800">{conversation.unreadCount} unread</span>}{conversation.contact.tags && <span className="status-pill">{conversation.contact.tags}</span>}<span className="status-pill bg-slate-50 text-slate-600">conversation #{conversation.id}</span></div></button>) : <div className="empty-state">Belum ada percakapan yang cocok dengan filter saat ini.</div>}
+        </div>
+      </Panel>
+      {selectedId ? <ConversationDetail auth={auth} id={selectedId} onChanged={reload} events={events} /> : <Panel title="Conversation" subtitle="Pilih satu percakapan dari kiri untuk membuka detail penuh."><div className="empty-state">Tidak ada percakapan yang sedang dipilih.</div></Panel>}
+    </div>
+  );
 }
 
 function ConversationDetail({ auth, id, onChanged, events }: { auth: AuthState; id: number; onChanged: () => void; events: string[] }) {
@@ -412,19 +541,29 @@ function InlineText({ value, onSave }: { value: string; onSave: (value: string) 
 function QrCode({ value }: { value: string }) {
   const [src, setSrc] = React.useState("");
   React.useEffect(() => { (QRCode as unknown as { toDataURL: (value: string) => Promise<string> }).toDataURL(value).then(setSrc).catch(() => setSrc("")); }, [value]);
-  return src ? <img className="border border-line bg-white p-2" src={src} alt="WhatsApp login QR" /> : <div className="text-sm text-slate-500">QR unavailable</div>;
+  return src ? <img className="rounded-[28px] border border-line bg-white p-3 shadow-sm" src={src} alt="WhatsApp login QR" /> : <div className="empty-state">QR unavailable</div>;
 }
 
 function SuggestionList({ suggestions, onUse }: { suggestions: KeywordSuggestion[]; onUse: (suggestion: KeywordSuggestion) => void }) {
   return <div><div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Keyword suggestions</div><div className="space-y-2">{suggestions.length ? suggestions.map((item) => <button key={`${item.type}-${item.id}`} className="list-card w-full text-left" onClick={() => onUse(item)}><div className="flex justify-between gap-2"><strong className="text-sm">{item.title}</strong><span className="text-xs uppercase text-slate-500">{item.type.replace("_", " ")} · {item.score}</span></div><p className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs text-slate-600">{item.body}</p><div className="mt-2 text-xs text-slate-500">{item.tags.join(", ") || "no tags"}</div></button>) : <div className="border border-line bg-slate-50 p-3 text-sm text-slate-500">No deterministic keyword matches.</div>}</div></div>;
 }
 
-function Panel({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) { return <section className={`border border-line bg-white p-4 shadow-sm ${className}`}><h2 className="mb-3 border-b border-line pb-2 text-sm font-semibold uppercase tracking-[0.16em] text-slate-600">{title}</h2>{children}</section>; }
-function MetricGrid({ values }: { values: Record<string, number> }) { return <div className="grid grid-cols-2 gap-3 md:grid-cols-3">{Object.entries(values).map(([key, value]) => <div key={key} className="border border-line bg-panel p-3"><div className="text-xs uppercase text-slate-500">{key}</div><div className="mt-1 text-2xl font-semibold">{value}</div></div>)}</div>; }
-function KeyValue({ rows }: { rows: Record<string, React.ReactNode> }) { return <dl className="divide-y divide-line border border-line">{Object.entries(rows).map(([key, value]) => <div key={key} className="grid grid-cols-2 gap-3 px-3 py-2 text-sm"><dt className="text-slate-500">{key}</dt><dd className="font-medium break-words">{value}</dd></div>)}</dl>; }
-function DataTable({ headers, rows }: { headers: string[]; rows: Array<Array<React.ReactNode>> }) { return <div className="overflow-auto border border-line"><table className="min-w-full text-left text-sm"><thead className="bg-slate-100 text-xs uppercase text-slate-500"><tr>{headers.map((header) => <th key={header} className="px-3 py-2 font-semibold">{header}</th>)}</tr></thead><tbody className="divide-y divide-line bg-white">{rows.length ? rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex} className="max-w-md px-3 py-2 align-top">{cell}</td>)}</tr>) : <tr><td className="px-3 py-4 text-slate-500" colSpan={headers.length}>No records.</td></tr>}</tbody></table></div>; }
-function MiniSection({ title, rows }: { title: string; rows: string[] }) { return <div><div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</div><div className="space-y-2">{rows.length ? rows.map((row, index) => <div key={index} className="border border-line bg-slate-50 p-2 text-xs text-slate-700">{row}</div>) : <div className="text-sm text-slate-500">None</div>}</div></div>; }
-function label(page: Page) { return page === "kb" ? "Knowledge Base" : page === "users" ? "Users" : page[0].toUpperCase() + page.slice(1); }
+function Panel({ title, subtitle, children, className = "" }: { title: string; subtitle?: string; children: React.ReactNode; className?: string }) {
+  return <section className={`panel ${className}`}><div className="mb-4 border-b border-slate-200 pb-3"><h2 className="panel-title">{title}</h2>{subtitle ? <p className="panel-subtitle">{subtitle}</p> : null}</div>{children}</section>;
+}
+function MetricGrid({ values }: { values: Record<string, number> }) {
+  return <div className="grid grid-cols-2 gap-3 md:grid-cols-3">{Object.entries(values).map(([key, value]) => <div key={key} className="metric-card"><div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">{humanizeKey(key)}</div><div className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">{value}</div></div>)}</div>;
+}
+function KeyValue({ rows }: { rows: Record<string, React.ReactNode> }) {
+  return <dl className="data-shell divide-y divide-line">{Object.entries(rows).map(([key, value]) => <div key={key} className="grid gap-2 px-4 py-3 text-sm sm:grid-cols-[170px_1fr]"><dt className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{humanizeKey(key)}</dt><dd className="font-semibold break-words text-slate-900">{value}</dd></div>)}</dl>;
+}
+function DataTable({ headers, rows }: { headers: string[]; rows: Array<Array<React.ReactNode>> }) {
+  return <div className="data-shell overflow-auto"><table className="data-table"><thead className="data-head"><tr>{headers.map((header) => <th key={header} className="px-4 py-3 font-bold">{header}</th>)}</tr></thead><tbody className="divide-y divide-line bg-white">{rows.length ? rows.map((row, index) => <tr key={index} className="align-top odd:bg-white even:bg-slate-50/55">{row.map((cell, cellIndex) => <td key={cellIndex} className="max-w-md px-4 py-3 text-slate-700">{cell}</td>)}</tr>) : <tr><td className="px-4 py-6 text-slate-500" colSpan={headers.length}>No records.</td></tr>}</tbody></table></div>;
+}
+function MiniSection({ title, rows }: { title: string; rows: string[] }) {
+  return <div><div className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{title}</div><div className="space-y-2">{rows.length ? rows.map((row, index) => <div key={index} className="soft-card py-3 text-sm leading-6 text-slate-700">{row}</div>) : <div className="empty-state">None</div>}</div></div>;
+}
+function label(page: Page) { return pageMeta[page].label; }
 function formatDate(value?: string | null) { return value ? new Date(value).toLocaleString() : "-"; }
 function formatMoney(value?: number | null) { return typeof value === "number" ? new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value) : "-"; }
 function formatBytes(value?: number | null) { return typeof value === "number" ? `${new Intl.NumberFormat("id-ID").format(value)} bytes` : "-"; }
@@ -433,5 +572,6 @@ function prettyAttributes(value: Order["attributes"]) { try { return JSON.string
 function parseAttributes(value: Order["attributes"]) { return typeof value === "string" ? JSON.parse(value || "{}") as Record<string, unknown> : value; }
 function personalizeTemplate(body: string, contactName: string) { return body.replace(/{{\s*name\s*}}/g, contactName); }
 function buildQuery(values: Record<string, string>) { const params = new URLSearchParams(); Object.entries(values).forEach(([key, value]) => { if (value.trim()) params.set(key, value.trim()); }); const query = params.toString(); return query ? `?${query}` : ""; }
+function humanizeKey(key: string) { return key.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ").trim(); }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(<App />);
